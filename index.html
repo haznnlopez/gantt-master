@@ -292,7 +292,7 @@
         // =================================================================================
         
         let firebaseConfig = {
-            aapiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
+            apiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
             authDomain: "gantt-master.firebaseapp.com",
             projectId: "gantt-master",
             storageBucket: "gantt-master.firebasestorage.app",
@@ -563,6 +563,7 @@
                     const d = new Date(lastUpdated);
                     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     document.getElementById('save-status').innerText = `Last Saved: ${dateStr}`;
+                    document.getElementById('save-status').className = "truncate min-w-0 shrink-0 text-gray-400";
                 }
 
                 const tbody = document.getElementById('task-table-body');
@@ -573,10 +574,12 @@
                     state.tasks.forEach((task, index) => {
                         // Check if row needs visual update (e.g., become parent row)
                         const tr = document.getElementById(`tr-${task.id}`);
-                        if(task.isParent && !tr.classList.contains('parent-row')) {
-                             tr.classList.add('parent-row');
-                        } else if(!task.isParent && tr.classList.contains('parent-row')) {
-                             tr.classList.remove('parent-row');
+                        if(tr) {
+                            if(task.isParent && !tr.classList.contains('parent-row')) {
+                                tr.classList.add('parent-row');
+                            } else if(!task.isParent && tr.classList.contains('parent-row')) {
+                                tr.classList.remove('parent-row');
+                            }
                         }
 
                         const setVal = (id, val) => {
@@ -1017,17 +1020,32 @@
                     pics: [],
                     status: 'Pending'
                 };
+                
+                // CAPTURE SCROLL
+                const scrollT = document.getElementById('table-pane').scrollTop;
+                
                 state.tasks.splice(index + 1, 0, newTask);
                 App.renderTable();
                 App.renderChart();
+                
+                // RESTORE SCROLL
+                document.getElementById('table-pane').scrollTop = scrollT;
+                
                 App.autoSave();
             },
 
             removeTask: (id) => {
                 if(confirm('Are you sure you want to delete this activity?')) {
+                    // CAPTURE SCROLL
+                    const scrollT = document.getElementById('table-pane').scrollTop;
+                    
                     state.tasks = state.tasks.filter(t => t.id !== id);
                     App.renderTable();
                     App.renderChart();
+                    
+                    // RESTORE SCROLL
+                    document.getElementById('table-pane').scrollTop = scrollT;
+                    
                     App.autoSave();
                 }
             },
@@ -1042,7 +1060,13 @@
             },
 
             saveChart: async (silent = false) => {
-                if(!dbInstance) return;
+                if(!dbInstance) {
+                    if(!silent) alert("Config Missing!\n\nYou have not set your Firebase keys in the code.\nPlease edit index.html lines ~340 and replace placeholders.");
+                    document.getElementById('save-status').innerText = "Config Missing";
+                    document.getElementById('save-status').className = "text-[10px] text-red-500 font-bold";
+                    return;
+                }
+                
                 const idToUse = state.chartId || generateId();
                 if(!silent) App.showToast("Saving...", "info");
                 
@@ -1117,7 +1141,9 @@
                 if(type === 'pic') state.config.picMap.push({ abbr: 'NEW', name: 'New Member', color: '#000000' });
                 if(type === 'status') state.config.statusMap.push({ name: 'New Status', color: '#000000' });
                 App.renderSettings();
-                App.renderAll();
+                // We update state config, but we do NOT call renderAll() here because renderAll kills the modal
+                // Actually renderSettings updates the modal HTML. 
+                // But we must save.
                 App.autoSave();
             },
             
@@ -1126,8 +1152,10 @@
                     if(type === 'pic') state.config.picMap.splice(index, 1);
                     if(type === 'status') state.config.statusMap.splice(index, 1);
                     App.renderSettings();
-                    App.renderAll();
                     App.autoSave();
+                    // Update chart to reflect colors
+                    App.renderChart();
+                    App.renderLegend();
                 }
             },
 
