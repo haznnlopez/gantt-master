@@ -55,7 +55,7 @@
             border-top: 6px solid rgba(17, 24, 39, 0.95);
         }
         
-        .row-height { height: 52px; }
+        .min-row-height { min-height: 52px; }
         .header-height { height: 50px; }
         
         /* Avatar Stack */
@@ -72,6 +72,28 @@
         .avatar-stack .avatar:hover { transform: translateY(-2px); z-index: 10; }
         .avatar-stack .avatar:last-child { margin-left: 0; }
         .online-dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border: 1px solid white; border-radius: 50%; }
+        
+        /* Hover Add Trigger */
+        .hover-add-trigger {
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none; /* Ignore clicks when hidden */
+        }
+        td:hover .hover-add-trigger, .hover-add-trigger:hover {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Textarea Auto-height styling */
+        .auto-textarea {
+            resize: none;
+            overflow: hidden;
+            min-height: 24px; /* Align with other inputs */
+            height: auto;
+            display: block;
+            line-height: 1.25rem;
+            padding-top: 0.1rem;
+        }
     </style>
 </head>
 <body class="bg-white text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -129,8 +151,8 @@
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-20 header-height">
                     <tr>
-                        <th class="px-2 align-middle w-10 text-center">#</th>
-                        <th class="px-2 align-middle w-64">Activity</th>
+                        <th class="px-2 align-middle w-14 text-center">#</th>
+                        <th class="px-2 align-middle w-40">Activity</th>
                         <th class="px-2 align-middle w-28">Start</th>
                         <th class="px-2 align-middle w-28">End</th>
                         <th class="px-2 align-middle w-12 text-center">Days</th>
@@ -191,7 +213,7 @@
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in flex flex-col max-h-[85vh]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[85vh]">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                 <h3 class="font-bold text-gray-800 flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4"></i> Configuration</h3>
                 <button onclick="app.toggleSettings()" class="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
@@ -262,7 +284,6 @@
             console.error("Firebase Init Error:", e);
         }
 
-        // Generate a random session color for this user
         const sessionColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
         const sessionId = Math.random().toString(36).substring(2);
 
@@ -278,6 +299,7 @@
             config: {
                 title: "Project Timeline",
                 subtitle: "GANTTMASTER",
+                themeColor: '#3b82f6', // Default Blue Base Color
                 picMap: [
                     { id: '1', abbr: 'TL', name: 'Team Lead', color: '#3b82f6' },
                     { id: '2', abbr: 'DEV', name: 'Developer', color: '#8b5cf6' },
@@ -289,15 +311,11 @@
                     { id: '2', name: 'In Progress', color: '#eab308' },
                     { id: '3', name: 'Pending', color: '#94a3b8' },
                     { id: '4', name: 'Delayed', color: '#ef4444' },
-                ],
-                activityTypes: [
-                    { id: '1', name: 'Major Activity', color: '#1e293b' },
-                    { id: '2', name: 'Minor Activity', color: '#475569' },
-                    { id: '3', name: 'Sub-Activity', color: '#94a3b8' },
                 ]
             },
             tasks: [
-                { id: '1', activityNo: '1.0', description: 'Project Kickoff', startDate: new Date().toISOString().split('T')[0], duration: 2, pics: ['TL'], status: 'Completed', type: 'Major Activity' },
+                { id: '1', activityNo: '1.0', description: 'Project Phase', startDate: new Date().toISOString().split('T')[0], duration: 10, pics: ['TL'], status: 'In Progress' },
+                { id: '2', activityNo: '1.1', description: 'Major Activity', startDate: new Date().toISOString().split('T')[0], duration: 5, pics: ['DEV'], status: 'Completed' },
             ]
         };
 
@@ -305,6 +323,35 @@
         function formatDate(str) { if(!str) return ''; const d = new Date(str); return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); }
         function addDays(str, days) { const d = new Date(str); d.setDate(d.getDate() + parseInt(days)); return d.toISOString().split('T')[0]; }
         function getDaysDiff(start, end) { return Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); }
+        
+        // --- Color Logic ---
+        function getTaskLevel(activityNo) {
+            if(!activityNo) return 0;
+            return (activityNo.match(/\./g) || []).length; 
+        }
+        
+        function adjustBrightness(col, amt) {
+            var usePound = false;
+            if (col[0] == "#") {
+                col = col.slice(1);
+                usePound = true;
+            }
+            var num = parseInt(col,16);
+            var r = (num >> 16) + amt;
+            if (r > 255) r = 255; else if  (r < 0) r = 0;
+            var b = ((num >> 8) & 0x00FF) + amt;
+            if (b > 255) b = 255; else if  (b < 0) b = 0;
+            var g = (num & 0x0000FF) + amt;
+            if (g > 255) g = 255; else if  (g < 0) g = 0;
+            return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16).padStart(6,'0');
+        }
+
+        function getThemeColor(baseColor, level) {
+            const step = 30; // Brightness step
+            const maxLevel = 4;
+            const cappedLevel = Math.min(level, maxLevel);
+            return adjustBrightness(baseColor, cappedLevel * step);
+        }
 
         const App = {
             init: async () => {
@@ -343,16 +390,15 @@
                 
                 if (id && dbInstance) {
                     state.chartId = id;
-                    // Listen to MAIN DATA
                     const docRef = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', id);
                     onSnapshot(docRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
-                            // If we receive an update, we assume it's valid
                             if(data.config) state.config = { ...state.config, ...data.config };
-                            if(data.tasks) state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
+                            // Migration: ensure themeColor exists if coming from old version
+                            if(!state.config.themeColor) state.config.themeColor = '#3b82f6';
                             
-                            // Smart DOM Update (Google Sheets Style)
+                            if(data.tasks) state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
                             App.updateDOMFromState(data.lastUpdated, data.authorId);
                         } else {
                             App.showToast("Chart not found. Starting fresh.", "error");
@@ -361,10 +407,7 @@
                             App.renderAll();
                         }
                     });
-
-                    // Listen to PRESENCE (Who is online)
                     App.initPresence(id);
-
                 } else {
                     App.renderAll();
                 }
@@ -372,30 +415,19 @@
 
             initPresence: (chartId) => {
                 const presenceRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', chartId, 'presence');
-                
-                // Write my presence
                 const myPresenceRef = doc(presenceRef, sessionId);
                 const updateMyPresence = () => {
-                    setDoc(myPresenceRef, {
-                        color: sessionColor,
-                        lastSeen: serverTimestamp(),
-                        userId: state.user?.uid || 'anon'
-                    });
+                    setDoc(myPresenceRef, { color: sessionColor, lastSeen: serverTimestamp(), userId: state.user?.uid || 'anon' });
                 };
                 updateMyPresence();
-                setInterval(updateMyPresence, 30000); // Heartbeat every 30s
-
-                // Listen for others
+                setInterval(updateMyPresence, 30000); 
                 onSnapshot(presenceRef, (snapshot) => {
                     state.activeUsers = [];
                     const now = new Date();
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        // Filter out stale users (> 2 mins)
                         const lastSeen = data.lastSeen ? data.lastSeen.toDate() : new Date(0);
-                        if ((now - lastSeen) < 120000) {
-                            state.activeUsers.push(data);
-                        }
+                        if ((now - lastSeen) < 120000) state.activeUsers.push(data);
                     });
                     App.renderPresence();
                 });
@@ -405,13 +437,12 @@
                 const c = document.getElementById('active-users');
                 if(!c) return;
                 c.innerHTML = '';
-                // Sort so "I" am stable or put self? Just render random colors
                 state.activeUsers.slice(0, 5).forEach(u => {
                     const d = document.createElement('div');
                     d.className = 'avatar';
                     d.style.backgroundColor = u.color;
                     d.title = "User Online";
-                    d.innerHTML = '<div class="online-dot"></div>'; // Green dot
+                    d.innerHTML = '<div class="online-dot"></div>';
                     c.appendChild(d);
                 });
                 if(state.activeUsers.length > 5) {
@@ -422,32 +453,25 @@
                 }
             },
 
-            // --- SMART UPDATE (Google Sheets Style) ---
             updateDOMFromState: (lastUpdated, authorId) => {
-                // 1. Update Header Info without losing focus
                 const titleEl = document.getElementById('app-title');
                 if(titleEl && document.activeElement !== titleEl) titleEl.value = state.config.title;
-                
                 const subEl = document.getElementById('app-subtitle');
                 if(subEl && document.activeElement !== subEl) subEl.value = state.config.subtitle;
 
                 if(lastUpdated) {
                     const d = new Date(lastUpdated);
                     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    const author = authorId ? authorId.substring(0, 4) : '...';
                     document.getElementById('save-status').innerText = `Last Saved: ${dateStr}`;
                     document.getElementById('save-status').className = "text-[10px] text-gray-400 truncate max-w-[150px]";
                 }
 
-                // 2. Sync Table Rows (Only update values if changed to prevent cursor jumping)
                 const tbody = document.getElementById('task-table-body');
-                // Check if row count matches. If rows added/removed, we MUST re-render structure.
                 const existingRows = tbody.querySelectorAll('tr.group');
                 if (existingRows.length !== state.tasks.length) {
-                    App.renderTable(); // Fallback to full render for structural changes
+                    App.renderTable();
                 } else {
-                    // Update values in place
-                    state.tasks.forEach(task => {
+                    state.tasks.forEach((task, index) => {
                         const setVal = (id, val) => {
                             const el = document.getElementById(id);
                             if(el && el.value != val && document.activeElement !== el) el.value = val;
@@ -458,13 +482,9 @@
                         setVal(`end-${task.id}`, addDays(task.startDate, task.duration - 1));
                         setVal(`dur-${task.id}`, task.duration);
                         
-                        // Dropdowns (selects)
-                        const statusSelect = document.querySelector(`#task-table-body tr:nth-child(${state.tasks.indexOf(task)+1}) select`);
-                        if(statusSelect && statusSelect.value !== task.status && document.activeElement !== statusSelect) {
-                            statusSelect.value = task.status;
-                        }
+                        const statusSelect = document.querySelector(`#task-table-body tr:nth-child(${index+1}) select`);
+                        if(statusSelect && statusSelect.value !== task.status && document.activeElement !== statusSelect) statusSelect.value = task.status;
                         
-                        // PIC Display update
                         const picContainer = document.getElementById(`pic-container-${task.id}`);
                         if(picContainer && state.activeDropdown !== task.id) {
                             const trigger = picContainer.querySelector('.flex');
@@ -472,8 +492,6 @@
                         }
                     });
                 }
-
-                // 3. Always re-render Chart Visuals (safe to do repeatedly)
                 App.renderChart();
                 App.renderLegend();
                 App.renderTeamAvatars();
@@ -502,55 +520,64 @@
                 });
             },
 
-            // --- Optimized Table Render (Initial or Structural Change) ---
             renderTable: () => {
                 const tbody = document.getElementById('task-table-body');
                 tbody.innerHTML = '';
 
-                state.tasks.forEach(task => {
+                state.tasks.forEach((task, index) => {
                     const tr = document.createElement('tr');
-                    tr.className = "border-b border-gray-100 hover:bg-gray-50 group transition-colors row-height";
+                    tr.id = `tr-${task.id}`; // Add ID for height sync
+                    tr.className = "border-b border-gray-100 hover:bg-gray-50 group transition-colors min-row-height"; // Changed class
                     tr.innerHTML = `
-                        <td class="px-2 align-middle text-center"><input id="act-${task.id}" type="text" class="w-full bg-transparent outline-none font-bold text-gray-500 text-center text-xs" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value)"></td>
-                        <td class="px-2 align-middle">
-                            <div class="flex flex-col justify-center">
-                                <input id="desc-${task.id}" type="text" class="w-full bg-transparent outline-none font-medium text-gray-800 focus:border-b focus:border-blue-500 truncate" value="${task.description}" oninput="app.handleInput('${task.id}', 'description', this.value)">
-                                <select class="text-[10px] text-gray-400 bg-transparent outline-none cursor-pointer mt-0.5 w-full" onchange="app.handleInput('${task.id}', 'type', this.value)">
-                                    ${state.config.activityTypes.map(t => `<option value="${t.name}" ${task.type === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
-                                </select>
-                            </div>
+                        <td class="px-2 align-middle text-center relative group/cell">
+                            <input id="act-${task.id}" type="text" class="w-full bg-transparent outline-none font-bold text-gray-500 text-center text-xs" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)">
+                            <button onclick="app.insertTask(${index})" class="hover-add-trigger absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 bg-white border border-blue-200 text-blue-500 rounded-full w-5 h-5 flex items-center justify-center shadow-sm z-20 hover:bg-blue-50 hover:scale-110 cursor-pointer" title="Add activity below">
+                                <i data-lucide="plus" class="w-3 h-3"></i>
+                            </button>
                         </td>
-                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value)"></td>
-                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value)"></td>
-                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs font-semibold text-blue-600" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value)"></td>
+                        <td class="px-2 align-middle py-1">
+                            <textarea id="desc-${task.id}" rows="1" class="w-full bg-transparent outline-none font-medium text-gray-800 text-sm auto-textarea align-middle resize-none overflow-hidden" oninput="app.handleInput('${task.id}', 'description', this.value, this)">${task.description}</textarea>
+                        </td>
+                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value, this)"></td>
+                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value, this)"></td>
+                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs font-semibold text-blue-600" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value, this)"></td>
                         <td class="px-2 align-middle pic-cell relative"></td>
                         <td class="px-2 align-middle">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer" onchange="app.handleInput('${task.id}', 'status', this.value)">
+                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
                                 ${state.config.statusMap.map(s => `<option value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
                         </td>
                         <td class="px-2 align-middle text-center">
-                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-red-50" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     `;
                     const picCell = tr.querySelector('.pic-cell');
                     picCell.appendChild(App.renderPicTrigger(task));
                     tbody.appendChild(tr);
+                    
+                    // Initial resize for description
+                    setTimeout(() => {
+                        const ta = document.getElementById(`desc-${task.id}`);
+                        if(ta) {
+                            ta.style.height = 'auto';
+                            ta.style.height = ta.scrollHeight + 'px';
+                        }
+                    }, 0);
                 });
-
-                const addRow = document.createElement('tr');
-                addRow.className = "row-height";
-                addRow.innerHTML = `<td colspan="8" class="px-2 py-2 align-middle"><button onclick="app.addTask()" class="flex items-center gap-2 text-blue-600 text-sm font-medium hover:bg-blue-50 px-3 py-2 rounded-lg w-full transition-colors border border-dashed border-blue-200"><i data-lucide="plus" class="w-4 h-4"></i> Add Activity</button></td>`;
-                tbody.appendChild(addRow);
                 lucide.createIcons();
+                // Ensure chart syncs after DOM update
+                setTimeout(App.renderChart, 50);
             },
 
-            // --- Optimized Input Handling ---
-            handleInput: (id, field, value) => {
+            handleInput: (id, field, value, element) => {
                 const task = state.tasks.find(t => t.id === id);
                 if (!task) return;
 
-                if (field === 'duration') {
+                if (field === 'description' && element) {
+                    element.style.height = 'auto';
+                    element.style.height = element.scrollHeight + 'px';
+                    task.description = value;
+                } else if (field === 'duration') {
                     const dur = parseInt(value) || 1;
                     task.duration = dur;
                     const endInput = document.getElementById(`end-${id}`);
@@ -569,11 +596,10 @@
                     task[field] = value;
                 }
 
-                App.renderChart(); // Visuals update instantly locally
-                App.autoSave(); // Sync to others
+                App.renderChart();
+                App.autoSave();
             },
 
-            // --- PIC Components ---
             renderPicTrigger: (task) => {
                 const div = document.createElement('div');
                 div.className = "pic-dropdown-container w-full h-full flex items-center";
@@ -657,7 +683,6 @@
                 lucide.createIcons();
             },
 
-            // --- Chart Rendering ---
             renderChart: () => {
                 const header = document.getElementById('chart-header');
                 const bars = document.getElementById('chart-bars');
@@ -691,20 +716,27 @@
                     header.appendChild(div);
                 });
 
-                state.tasks.forEach(task => {
+                state.tasks.forEach((task, index) => {
                     const startOffset = getDaysDiff(timelineDays[0], task.startDate);
-                    const typeConfig = state.config.activityTypes.find(t => t.name === task.type) || { color: '#ccc' };
+                    const level = getTaskLevel(task.activityNo);
+                    const barColor = getThemeColor(state.config.themeColor, level);
                     const isCompleted = task.status === 'Completed';
                     
+                    // Sync Height with Table
+                    const tableRow = document.getElementById(`tr-${task.id}`);
+                    const rowHeight = tableRow ? tableRow.getBoundingClientRect().height : 52;
+
                     const row = document.createElement('div');
-                    row.className = "relative row-height w-full border-b border-dashed border-gray-100 flex items-center group hover:bg-white/50";
+                    row.className = "relative w-full border-b border-dashed border-gray-100 flex items-center group hover:bg-white/50";
+                    row.style.height = `${rowHeight}px`; // Dynamic height
+
                     const bar = document.createElement('div');
                     bar.className = `absolute h-6 rounded-sm text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 hover:shadow-md ${isCompleted ? 'shadow-sm' : ''}`;
                     bar.style.left = `${startOffset * state.zoom}px`;
                     bar.style.width = `${task.duration * state.zoom}px`;
-                    bar.style.backgroundColor = isCompleted ? typeConfig.color : `${typeConfig.color}15`;
-                    bar.style.border = isCompleted ? 'none' : `2px dashed ${typeConfig.color}`;
-                    bar.style.color = isCompleted ? 'white' : typeConfig.color;
+                    bar.style.backgroundColor = isCompleted ? barColor : `${barColor}15`;
+                    bar.style.border = isCompleted ? 'none' : `2px dashed ${barColor}`;
+                    bar.style.color = isCompleted ? 'white' : barColor;
                     
                     bar.onmouseenter = (e) => App.showTooltip(e, task);
                     bar.onmouseleave = () => document.getElementById('custom-tooltip').classList.add('hidden');
@@ -725,30 +757,28 @@
                 } else { todayLine.style.display = 'none'; }
             },
 
-            // --- Visuals ---
             renderLegend: () => {
                 const c = document.getElementById('legend-content');
                 c.innerHTML = '';
                 
-                // Types
                 const c1 = document.createElement('div');
-                c1.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Activity Types</h4>`;
-                state.config.activityTypes.forEach(t => c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${t.color}"></div><span class="text-sm text-gray-600">${t.name}</span></div>`);
+                c1.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Hierarchy Colors</h4>`;
+                const levels = ["Activity Phase", "Major Activity", "Minor Activity", "Sub-Activity"];
+                levels.forEach((name, i) => {
+                    const color = getThemeColor(state.config.themeColor, i);
+                    c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${color}"></div><span class="text-sm text-gray-600">${name}</span></div>`;
+                });
                 c.appendChild(c1);
                 
-                // Status
                 const c2 = document.createElement('div');
                 c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Status</h4><div class="space-y-2"><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600">Completed</span></div><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-700">Dashed</div><span class="text-sm text-gray-600">Ongoing</span></div></div>`;
                 c.appendChild(c2);
 
-                // PICs
                 const c3 = document.createElement('div');
                 c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">PIC</h4><div class="grid grid-cols-2 gap-2"></div>`;
                 const grid = c3.querySelector('.grid');
                 state.config.picMap.forEach(p => grid.innerHTML += `<div class="flex items-center gap-2"><span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:${p.color}20; color:${p.color}">${p.abbr}</span><span class="text-sm text-gray-600">${p.name}</span></div>`);
                 c.appendChild(c3);
-                
-                // Update Settings Modal List as well if open (simplified)
             },
 
             showTooltip: (e, task) => {
@@ -757,28 +787,25 @@
                 document.getElementById('tooltip-title').innerText = `${task.activityNo} ${task.description}`;
                 document.getElementById('tooltip-status').innerText = task.status;
                 const end = addDays(task.startDate, task.duration - 1);
-                // MM/DD/YYYY Logic
                 document.getElementById('tooltip-date').innerText = `${formatDate(task.startDate)} - ${formatDate(end)}`;
                 tip.style.left = `${rect.left + (rect.width/2)}px`;
                 tip.style.top = `${rect.top}px`;
                 tip.classList.remove('hidden');
             },
 
-            // --- Actions ---
-            addTask: () => {
-                const last = state.tasks[state.tasks.length-1];
-                const start = last ? last.startDate : new Date().toISOString().split('T')[0];
-                state.tasks.push({
+            insertTask: (index) => {
+                const prev = state.tasks[index];
+                const startDate = prev ? prev.startDate : new Date().toISOString().split('T')[0];
+                const newTask = {
                     id: generateId(),
-                    activityNo: (state.tasks.length + 1).toFixed(1),
+                    activityNo: ((parseFloat(prev?.activityNo) || 0) + 0.1).toFixed(1),
                     description: 'New Activity',
-                    startDate: start,
+                    startDate: startDate,
                     duration: 1,
-                    pics: ['TL'],
-                    status: 'Pending',
-                    type: 'Major Activity'
-                });
-                // Structural change requires full render
+                    pics: [],
+                    status: 'Pending'
+                };
+                state.tasks.splice(index + 1, 0, newTask);
                 App.renderTable();
                 App.renderChart();
                 App.autoSave();
@@ -793,7 +820,6 @@
                 }
             },
 
-            // --- Auto Save & Sharing ---
             autoSave: () => {
                 clearTimeout(state.saveTimer);
                 document.getElementById('save-status').innerText = 'Saving...';
@@ -825,7 +851,6 @@
                     
                     if(!silent) App.showToast("Saved!", "success");
                     
-                    // Update Text
                     const d = new Date();
                     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     document.getElementById('save-status').innerText = `Saved ${dateStr}`;
@@ -849,7 +874,6 @@
                 });
             },
 
-            // --- Helpers ---
             zoomIn: () => { state.zoom = Math.min(state.zoom + 4, 80); App.updateZoom(); },
             zoomOut: () => { state.zoom = Math.max(state.zoom - 4, 8); App.updateZoom(); },
             handleZoomSubmit: () => {
@@ -874,29 +898,75 @@
             },
             toggleSettings: () => {
                 document.getElementById('settings-modal').classList.toggle('hidden');
-                // Could render settings content here if needed
+                if(!document.getElementById('settings-modal').classList.contains('hidden')) App.renderSettings();
             },
+            
+            addConfigItem: (type) => {
+                if(type === 'pic') state.config.picMap.push({ abbr: 'NEW', name: 'New Member', color: '#000000' });
+                if(type === 'status') state.config.statusMap.push({ name: 'New Status', color: '#000000' });
+                App.renderSettings();
+                App.renderAll();
+                App.autoSave();
+            },
+            
+            removeConfigItem: (type, index) => {
+                if(confirm('Delete this item?')) {
+                    if(type === 'pic') state.config.picMap.splice(index, 1);
+                    if(type === 'status') state.config.statusMap.splice(index, 1);
+                    App.renderSettings();
+                    App.renderAll();
+                    App.autoSave();
+                }
+            },
+
             renderSettings: () => {
-                // Populate settings modal with inputs for PICs, Statuses, etc.
                 const c = document.getElementById('settings-content');
                 c.innerHTML = `
-                    <div class="space-y-4">
+                    <div class="space-y-6">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1">Chart Title</label>
                             <input class="w-full border rounded px-3 py-2 text-sm" value="${state.config.title}" oninput="state.config.title=this.value; document.getElementById('app-title').value=this.value; app.autoSave();">
                         </div>
+
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-2">Team Members</label>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Theme Base Color (For Activities)</label>
+                            <div class="flex items-center gap-3">
+                                <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" onchange="state.config.themeColor=this.value; app.renderChart(); app.renderLegend(); app.autoSave();">
+                                <span class="text-xs text-gray-400">Activity colors are auto-generated gradients of this color.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-xs font-bold text-gray-500">Team Members</label>
+                                <button onclick="app.addConfigItem('pic')" class="text-blue-600 text-xs font-bold hover:underline">+ Add Member</button>
+                            </div>
                             ${state.config.picMap.map((p, i) => `
-                                <div class="flex gap-2 mb-2">
+                                <div class="flex gap-2 mb-2 items-center">
                                     <input class="w-16 border rounded px-2 py-1 text-sm uppercase" value="${p.abbr}" onchange="state.config.picMap[${i}].abbr=this.value; app.renderAll(); app.autoSave();">
                                     <input class="flex-1 border rounded px-2 py-1 text-sm" value="${p.name}" onchange="state.config.picMap[${i}].name=this.value; app.renderAll(); app.autoSave();">
                                     <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${p.color}" onchange="state.config.picMap[${i}].color=this.value; app.renderAll(); app.autoSave();">
+                                    <button onclick="app.removeConfigItem('pic', ${i})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-xs font-bold text-gray-500">Statuses</label>
+                                <button onclick="app.addConfigItem('status')" class="text-blue-600 text-xs font-bold hover:underline">+ Add Status</button>
+                            </div>
+                            ${state.config.statusMap.map((s, i) => `
+                                <div class="flex gap-2 mb-2 items-center">
+                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${s.name}" onchange="state.config.statusMap[${i}].name=this.value; app.renderAll(); app.autoSave();">
+                                    <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${s.color}" onchange="state.config.statusMap[${i}].color=this.value; app.renderAll(); app.autoSave();">
+                                    <button onclick="app.removeConfigItem('status', ${i})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
                 `;
+                lucide.createIcons();
             },
             showToast: (msg, type) => {
                 const t = document.getElementById('toast');
