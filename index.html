@@ -69,6 +69,22 @@
         .min-row-height { min-height: 52px; }
         .header-height { height: 50px; }
         
+        /* Avatar Stack */
+        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; flex-direction: row-reverse; }
+        .avatar-stack .avatar { 
+            width: 28px; height: 28px; border-radius: 50%; 
+            border: 2px solid white; margin-left: -8px; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .dark .avatar-stack .avatar { border-color: #1e293b; }
+        .avatar-stack .avatar:hover { transform: translateY(-2px); z-index: 10; }
+        .avatar-stack .avatar:last-child { margin-left: 0; }
+        .online-dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border: 1px solid white; border-radius: 50%; }
+        
         /* Hover Add Trigger */
         .hover-add-trigger {
             opacity: 0;
@@ -238,13 +254,14 @@
         <span id="toast-message"></span>
     </div>
 
-    <!-- Custom Tooltip -->
+    <!-- Custom Tooltip (Updated Visuals) -->
     <div id="custom-tooltip" class="hidden fixed z-[100] bg-gray-900/90 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none mt-[-8px]">
         <div id="tooltip-title" class="font-bold mb-1 border-b border-gray-700 pb-1"></div>
         <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10px] text-gray-300">
             <span>Status:</span> <span id="tooltip-status" class="text-white font-medium"></span>
             <span>Period:</span> <span id="tooltip-date" class="text-white font-mono"></span>
         </div>
+        <!-- Arrow removed -->
     </div>
 
     <!-- Application Logic -->
@@ -343,6 +360,16 @@
             return (activityNo.match(/\./g) || []).length; 
         }
         
+        // Helper to check for light/dark text
+        function getContrastYIQ(hexcolor){
+            if(!hexcolor) return 'black';
+            var r = parseInt(hexcolor.substr(1,2),16);
+            var g = parseInt(hexcolor.substr(3,2),16);
+            var b = parseInt(hexcolor.substr(5,2),16);
+            var yiq = ((r*299)+(g*587)+(b*114))/1000;
+            return (yiq >= 128) ? 'black' : 'white';
+        }
+        
         function adjustBrightness(col, amt) {
             var usePound = false;
             if (col[0] == "#") {
@@ -438,18 +465,11 @@
                 zoomInp.onblur = App.handleZoomSubmit;
                 zoomInp.onkeydown = (e) => { if(e.key === 'Enter') App.handleZoomSubmit(); };
 
-                // Click handler to close body-attached dropdowns
                 document.addEventListener('click', (e) => {
                     const dropdown = document.getElementById('active-dropdown');
                     if (dropdown && !dropdown.contains(e.target) && !e.target.closest('.pic-dropdown-container')) {
                         dropdown.remove();
                         state.activeDropdown = null;
-                    }
-                    const drawer = document.getElementById('drawer-container');
-                    const tabBtn = document.querySelector('button[onclick="app.toggleLegend()"]');
-                    if (state.showLegend && !drawer.contains(e.target) && !tabBtn.contains(e.target)) {
-                        // Close drawer on outside click
-                        // app.toggleLegend(); // Optional: user might want it to stay open
                     }
                 });
             },
@@ -531,26 +551,34 @@
                 }
 
                 const tbody = document.getElementById('task-table-body');
-                // Check if structural update needed (row count or order)
-                const existingRowIds = Array.from(tbody.querySelectorAll('tr.group')).map(tr => tr.id.replace('tr-', ''));
-                const taskIds = state.tasks.map(t => t.id);
-                const isMismatch = taskIds.length !== existingRowIds.length || !taskIds.every((id, i) => id === existingRowIds[i]);
-
-                if (isMismatch) {
+                const existingRows = tbody.querySelectorAll('tr.group');
+                if (existingRows.length !== state.tasks.length) {
                     App.renderTable();
                 } else {
                     state.tasks.forEach((task, index) => {
                         const tr = document.getElementById(`tr-${task.id}`);
+                        
                         // Update visual phase/parent styling
                         const isPhase = !task.activityNo.includes('.');
                         if(tr) {
                             if(isPhase) {
                                 tr.style.backgroundColor = state.config.themeColor;
                                 tr.style.borderTop = "1px solid #cbd5e1";
-                                tr.querySelector('input').classList.add('text-white');
+                                const textColor = getContrastYIQ(state.config.themeColor);
+                                tr.style.color = textColor;
+                                const inputs = tr.querySelectorAll('input, textarea, select');
+                                inputs.forEach(inp => {
+                                    inp.style.color = textColor;
+                                    if(inp.tagName === 'SELECT') {
+                                        inp.style.borderColor = (textColor === 'white') ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+                                    }
+                                });
                             } else {
                                 tr.style.backgroundColor = '';
                                 tr.style.borderTop = '';
+                                tr.style.color = '';
+                                const inputs = tr.querySelectorAll('input, textarea, select');
+                                inputs.forEach(inp => inp.style.color = '');
                             }
                             if(task.isParent && !tr.classList.contains('parent-row')) tr.classList.add('parent-row');
                             else if(!task.isParent && tr.classList.contains('parent-row')) tr.classList.remove('parent-row');
@@ -611,6 +639,9 @@
                 const tbody = document.getElementById('task-table-body');
                 const scrollT = document.getElementById('table-pane').scrollTop;
                 tbody.innerHTML = '';
+                
+                // Get Text Color for Phases
+                const phaseTextColor = getContrastYIQ(state.config.themeColor);
 
                 state.tasks.forEach((task, index) => {
                     const tr = document.createElement('tr');
@@ -624,8 +655,8 @@
                     let textClass = "text-gray-500 dark:text-slate-400"; 
                     
                     if (isPhase) {
-                        rowStyle = `background-color: ${state.config.themeColor}; color: #ffffff; border-top: 1px solid #cbd5e1;`;
-                        textClass = "text-white font-bold";
+                        rowStyle = `background-color: ${state.config.themeColor}; color: ${phaseTextColor}; border-top: 1px solid #cbd5e1;`;
+                        textClass = phaseTextColor === 'white' ? "text-white font-bold" : "text-black font-bold";
                     } else if (isMajor) {
                         rowClass += " font-bold bg-gray-50 dark:bg-slate-800";
                         textClass = "text-gray-800 dark:text-slate-200 font-bold";
@@ -639,32 +670,35 @@
                     
                     const endDateVal = (task.startDate && task.duration) ? addDays(task.startDate, task.duration - 1) : '';
                     const inputClassBase = "w-full bg-transparent outline-none text-center text-xs";
-                    const inputClass = isPhase ? `${inputClassBase} text-white placeholder-white/70` : `${inputClassBase} ${textClass}`;
-                    const descClass = isPhase ? "w-full bg-transparent outline-none text-sm auto-textarea align-middle resize-none overflow-hidden text-white" : "w-full bg-transparent outline-none font-medium text-gray-800 dark:text-slate-200 text-sm auto-textarea align-middle resize-none overflow-hidden";
+                    const inputClass = isPhase ? `${inputClassBase} ${textClass} placeholder-${phaseTextColor}/70` : `${inputClassBase} ${textClass}`;
+                    const descClass = isPhase ? `w-full bg-transparent outline-none text-sm auto-textarea align-middle resize-none overflow-hidden ${textClass}` : "w-full bg-transparent outline-none font-medium text-gray-800 dark:text-slate-200 text-sm auto-textarea align-middle resize-none overflow-hidden";
                     
                     const isLast = index === state.tasks.length - 1;
                     const hoverBtn = isLast ? '' : `
                         <button onclick="app.insertTask(${index})" class="hover-add-trigger absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 text-blue-500 dark:text-blue-400 rounded-full w-5 h-5 flex items-center justify-center shadow-sm z-20 hover:bg-blue-50 dark:hover:bg-slate-600 hover:scale-110 cursor-pointer" title="Add activity below">
                             <i data-lucide="plus" class="w-3 h-3"></i>
                         </button>`;
+                    
+                    // Button color override for phases
+                    const delBtnClass = isPhase ? `transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 text-${phaseTextColor}/70 hover:text-${phaseTextColor} hover:bg-${phaseTextColor}/20` : 'text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-slate-700';
 
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell">
-                            <input id="act-${task.id}" type="text" class="${inputClass}" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)">
+                            <input id="act-${task.id}" type="text" class="${inputClass}" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)" onchange="app.commitActivityNo('${task.id}', this.value)">
                             ${hoverBtn}
                         </td>
                         <td class="px-2 align-middle py-1">
                             <textarea id="desc-${task.id}" rows="1" class="${descClass}" oninput="app.handleInput('${task.id}', 'description', this.value, this)">${task.description}</textarea>
                         </td>
                         <td class="px-2 align-middle">
-                            <input id="start-${task.id}" type="text" class="${isPhase ? 'text-white' : 'text-gray-600 dark:text-slate-400'} bg-transparent outline-none w-full cursor-pointer text-xs font-mono" 
+                            <input id="start-${task.id}" type="text" class="${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'} bg-transparent outline-none w-full cursor-pointer text-xs font-mono" 
                                 value="${task.startDate ? formatDateDisplay(task.startDate) : ''}" 
                                 onfocus="(this.type='date');this.showPicker();this.value='${task.startDate || ''}'" 
                                 onblur="(this.type='text');this.value=app.formatDateDisplay(this.value);"
                                 onchange="app.handleInput('${task.id}', 'startDate', this.value)">
                         </td>
                         <td class="px-2 align-middle">
-                             <input id="end-${task.id}" type="text" class="${isPhase ? 'text-white' : 'text-gray-600 dark:text-slate-400'} bg-transparent outline-none w-full cursor-pointer text-xs font-mono" 
+                             <input id="end-${task.id}" type="text" class="${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'} bg-transparent outline-none w-full cursor-pointer text-xs font-mono" 
                                 value="${endDateVal ? formatDateDisplay(endDateVal) : ''}" 
                                 onfocus="(this.type='date');this.showPicker();this.value='${endDateVal || ''}'" 
                                 onblur="(this.type='text');this.value=app.formatDateDisplay(this.value);"
@@ -675,12 +709,12 @@
                         </td>
                         <td class="px-2 align-middle pic-cell relative"></td>
                         <td class="px-2 align-middle">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer ${isPhase ? 'text-white border-white/20' : 'text-gray-600 dark:text-slate-400 dark:border-slate-600 dark:focus:border-slate-500'}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
+                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border ${isPhase ? 'border-' + phaseTextColor + '/30' : 'border-transparent dark:border-slate-600 focus:border-gray-300 dark:focus:border-slate-500'} cursor-pointer ${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
                                 ${state.config.statusMap.map(s => `<option class="text-gray-800" value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
                         </td>
                         <td class="px-2 align-middle text-center">
-                             <button onclick="app.removeTask('${task.id}')" class="transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 ${isPhase ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700'}" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                             <button onclick="app.removeTask('${task.id}')" class="${delBtnClass}" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     `;
                     const picCell = tr.querySelector('.pic-cell');
@@ -707,6 +741,16 @@
             },
 
             formatDateDisplay: formatDateDisplay,
+            
+            // New separate handler for committing activity number change
+            commitActivityNo: (id, value) => {
+                const task = state.tasks.find(t => t.id === id);
+                if (!task) return;
+                task.activityNo = value;
+                App.identifyParents();
+                App.renderTable(); // Full re-render needed for hierarchy/styling changes
+                App.autoSave();
+            },
 
             handleInput: (id, field, value, element) => {
                 const task = state.tasks.find(t => t.id === id);
@@ -732,9 +776,8 @@
                     const durInput = document.getElementById(`dur-${id}`);
                     if(durInput) durInput.value = newDur;
                 } else if (field === 'activityNo') {
+                    // Just update state, do NOT re-render table to keep focus
                     task.activityNo = value;
-                    App.identifyParents();
-                    App.renderTable();
                 } else {
                     task[field] = value;
                 }
@@ -876,8 +919,15 @@
                 
                 if (state.tasks.length === 0) return;
 
-                const starts = state.tasks.map(t => new Date(t.startDate));
-                const ends = state.tasks.map(t => new Date(addDays(t.startDate, t.duration + 5)));
+                // Safely handle empty/invalid dates for bounds calculation
+                let validTasks = state.tasks.filter(t => t.startDate && t.duration);
+                if (validTasks.length === 0) {
+                     // Fallback to today if no valid tasks
+                     validTasks = [{startDate: new Date().toISOString().split('T')[0], duration: 1}];
+                }
+
+                const starts = validTasks.map(t => new Date(t.startDate));
+                const ends = validTasks.map(t => new Date(addDays(t.startDate, t.duration + 5)));
                 const minDate = new Date(Math.min(...starts));
                 minDate.setDate(minDate.getDate() - 2);
                 const maxDate = new Date(Math.max(...ends));
@@ -900,10 +950,12 @@
                 });
 
                 state.tasks.forEach((task, index) => {
+                    // Sync Height with Table
                     const tableRow = document.getElementById(`tr-${task.id}`);
                     const rowHeight = tableRow ? tableRow.getBoundingClientRect().height : 52;
                     
                     const row = document.createElement('div');
+                    // Add border top to chart row if it matches a phase
                     const isPhase = !task.activityNo.includes('.');
                     const borderTop = isPhase ? `border-top: 1px solid #cbd5e1;` : '';
                     row.className = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50";
@@ -1059,6 +1111,12 @@
                 App.renderChart();
                 
                 document.getElementById('table-pane').scrollTop = scrollT;
+                
+                // Focus the description of the new task for smoother flow
+                setTimeout(() => {
+                    const descInput = document.getElementById(`desc-${newTask.id}`);
+                    if(descInput) descInput.focus();
+                }, 0);
                 
                 App.autoSave();
             },
