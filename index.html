@@ -59,14 +59,19 @@
         .header-height { height: 50px; }
         
         /* Avatar Stack */
-        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; }
+        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; flex-direction: row-reverse; }
         .avatar-stack .avatar { 
-            width: 24px; height: 24px; border-radius: 50%; 
+            width: 28px; height: 28px; border-radius: 50%; 
             border: 2px solid white; margin-left: -8px; 
             display: flex; align-items: center; justify-content: center;
             font-size: 10px; font-weight: bold; color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.2s;
         }
-        .avatar-stack .avatar:first-child { margin-left: 0; }
+        .avatar-stack .avatar:hover { transform: translateY(-2px); z-index: 10; }
+        .avatar-stack .avatar:last-child { margin-left: 0; }
+        .online-dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border: 1px solid white; border-radius: 50%; }
     </style>
 </head>
 <body class="bg-white text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -82,17 +87,19 @@
                 <div class="flex items-center gap-2 text-[10px] text-gray-400">
                     <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-24" value="GANTTMASTER">
                     <span class="w-px h-3 bg-gray-300"></span>
-                    <span id="last-updated" class="truncate max-w-[150px]">Unsaved</span>
+                    <span id="save-status" class="truncate max-w-[150px] transition-colors">Unsaved</span>
                 </div>
             </div>
         </div>
         
         <div class="flex items-center gap-4">
-            <!-- Team Display -->
+            <!-- Presence / Team Display -->
             <div class="hidden lg:flex items-center gap-2 mr-2">
-                <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Team</span>
-                <div id="team-avatars" class="avatar-stack">
-                    <!-- Avatars injected via JS -->
+                <div id="active-users" class="avatar-stack pr-2 border-r border-gray-200">
+                    <!-- Live Users injected via JS -->
+                </div>
+                <div id="team-avatars" class="avatar-stack opacity-60">
+                    <!-- Configured Team injected via JS -->
                 </div>
             </div>
 
@@ -117,7 +124,7 @@
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden relative">
         
-        <!-- Table Pane (Width increased for better visibility) -->
+        <!-- Table Pane -->
         <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 bg-white h-full custom-scrollbar flex-none z-10 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]" style="width: 700px;">
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-20 header-height">
@@ -218,7 +225,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, setDoc, onSnapshot, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // =================================================================================
         // CONFIGURATION: REPLACE THIS SECTION WITH YOUR FIREBASE KEYS FOR GITHUB HOSTING
@@ -238,7 +245,6 @@
             try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
         }
         
-        // Use a consistent ID for public sharing if standard hosting is used
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'gantt-master-public';
         // =================================================================================
 
@@ -250,11 +256,15 @@
                 authInstance = getAuth(appInstance);
                 dbInstance = getFirestore(appInstance);
             } else {
-                console.warn("Firebase not configured properly.");
+                console.warn("Firebase not configured.");
             }
         } catch(e) {
             console.error("Firebase Init Error:", e);
         }
+
+        // Generate a random session color for this user
+        const sessionColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        const sessionId = Math.random().toString(36).substring(2);
 
         const state = {
             user: null,
@@ -264,6 +274,7 @@
             showLegend: false,
             activeDropdown: null,
             saveTimer: null,
+            activeUsers: [],
             config: {
                 title: "Project Timeline",
                 subtitle: "GANTTMASTER",
@@ -291,7 +302,6 @@
         };
 
         function generateId() { return Math.random().toString(36).substr(2, 9); }
-        // MM/DD/YYYY Format
         function formatDate(str) { if(!str) return ''; const d = new Date(str); return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); }
         function addDays(str, days) { const d = new Date(str); d.setDate(d.getDate() + parseInt(days)); return d.toISOString().split('T')[0]; }
         function getDaysDiff(start, end) { return Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); }
@@ -333,53 +343,140 @@
                 
                 if (id && dbInstance) {
                     state.chartId = id;
-                    // Robust check: Ensure collection path is valid. Using 'public' segment as per logic.
+                    // Listen to MAIN DATA
                     const docRef = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', id);
-                    
                     onSnapshot(docRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
-                            const isEditing = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT';
-                            
-                            // Safe merge logic
+                            // If we receive an update, we assume it's valid
                             if(data.config) state.config = { ...state.config, ...data.config };
                             if(data.tasks) state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
                             
-                            // Update Meta
-                            document.getElementById('app-title').value = state.config.title;
-                            document.getElementById('app-subtitle').value = state.config.subtitle;
-                            
-                            // Update Timestamp & Author
-                            if(data.lastUpdated) {
-                                const d = new Date(data.lastUpdated);
-                                const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                const author = data.authorId ? data.authorId.substring(0, 4) : 'Anon';
-                                document.getElementById('last-updated').innerText = `Saved: ${dateStr} (ID: ${author})`;
-                            }
-
-                            // If user is actively typing, DO NOT re-render table to prevent focus loss.
-                            // Only re-render chart visuals.
-                            if (!isEditing) {
-                                App.renderTable();
-                            }
-                            
-                            // Always update chart visual elements
-                            App.renderChart();
-                            App.renderLegend(); // Updates avatars too
+                            // Smart DOM Update (Google Sheets Style)
+                            App.updateDOMFromState(data.lastUpdated, data.authorId);
                         } else {
-                            // If ID in URL but doc doesn't exist, create it locally but warn user
-                            App.showToast("Chart ID not found. Starting fresh.", "error");
-                            window.history.pushState({}, '', window.location.pathname); // Clear invalid ID
+                            App.showToast("Chart not found. Starting fresh.", "error");
+                            window.history.pushState({}, '', window.location.pathname);
                             state.chartId = null;
                             App.renderAll();
                         }
-                    }, (error) => {
-                        console.error("Snapshot Error:", error);
-                        App.showToast("Sync Error. Check console.", "error");
                     });
+
+                    // Listen to PRESENCE (Who is online)
+                    App.initPresence(id);
+
                 } else {
                     App.renderAll();
                 }
+            },
+
+            initPresence: (chartId) => {
+                const presenceRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', chartId, 'presence');
+                
+                // Write my presence
+                const myPresenceRef = doc(presenceRef, sessionId);
+                const updateMyPresence = () => {
+                    setDoc(myPresenceRef, {
+                        color: sessionColor,
+                        lastSeen: serverTimestamp(),
+                        userId: state.user?.uid || 'anon'
+                    });
+                };
+                updateMyPresence();
+                setInterval(updateMyPresence, 30000); // Heartbeat every 30s
+
+                // Listen for others
+                onSnapshot(presenceRef, (snapshot) => {
+                    state.activeUsers = [];
+                    const now = new Date();
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        // Filter out stale users (> 2 mins)
+                        const lastSeen = data.lastSeen ? data.lastSeen.toDate() : new Date(0);
+                        if ((now - lastSeen) < 120000) {
+                            state.activeUsers.push(data);
+                        }
+                    });
+                    App.renderPresence();
+                });
+            },
+
+            renderPresence: () => {
+                const c = document.getElementById('active-users');
+                if(!c) return;
+                c.innerHTML = '';
+                // Sort so "I" am stable or put self? Just render random colors
+                state.activeUsers.slice(0, 5).forEach(u => {
+                    const d = document.createElement('div');
+                    d.className = 'avatar';
+                    d.style.backgroundColor = u.color;
+                    d.title = "User Online";
+                    d.innerHTML = '<div class="online-dot"></div>'; // Green dot
+                    c.appendChild(d);
+                });
+                if(state.activeUsers.length > 5) {
+                    const more = document.createElement('div');
+                    more.className = 'avatar bg-gray-400';
+                    more.innerText = `+${state.activeUsers.length - 5}`;
+                    c.appendChild(more);
+                }
+            },
+
+            // --- SMART UPDATE (Google Sheets Style) ---
+            updateDOMFromState: (lastUpdated, authorId) => {
+                // 1. Update Header Info without losing focus
+                const titleEl = document.getElementById('app-title');
+                if(titleEl && document.activeElement !== titleEl) titleEl.value = state.config.title;
+                
+                const subEl = document.getElementById('app-subtitle');
+                if(subEl && document.activeElement !== subEl) subEl.value = state.config.subtitle;
+
+                if(lastUpdated) {
+                    const d = new Date(lastUpdated);
+                    const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const author = authorId ? authorId.substring(0, 4) : '...';
+                    document.getElementById('save-status').innerText = `Last Saved: ${dateStr}`;
+                    document.getElementById('save-status').className = "text-[10px] text-gray-400 truncate max-w-[150px]";
+                }
+
+                // 2. Sync Table Rows (Only update values if changed to prevent cursor jumping)
+                const tbody = document.getElementById('task-table-body');
+                // Check if row count matches. If rows added/removed, we MUST re-render structure.
+                const existingRows = tbody.querySelectorAll('tr.group');
+                if (existingRows.length !== state.tasks.length) {
+                    App.renderTable(); // Fallback to full render for structural changes
+                } else {
+                    // Update values in place
+                    state.tasks.forEach(task => {
+                        const setVal = (id, val) => {
+                            const el = document.getElementById(id);
+                            if(el && el.value != val && document.activeElement !== el) el.value = val;
+                        };
+                        setVal(`act-${task.id}`, task.activityNo);
+                        setVal(`desc-${task.id}`, task.description);
+                        setVal(`start-${task.id}`, task.startDate);
+                        setVal(`end-${task.id}`, addDays(task.startDate, task.duration - 1));
+                        setVal(`dur-${task.id}`, task.duration);
+                        
+                        // Dropdowns (selects)
+                        const statusSelect = document.querySelector(`#task-table-body tr:nth-child(${state.tasks.indexOf(task)+1}) select`);
+                        if(statusSelect && statusSelect.value !== task.status && document.activeElement !== statusSelect) {
+                            statusSelect.value = task.status;
+                        }
+                        
+                        // PIC Display update
+                        const picContainer = document.getElementById(`pic-container-${task.id}`);
+                        if(picContainer && state.activeDropdown !== task.id) {
+                            const trigger = picContainer.querySelector('.flex');
+                            App.updatePicDisplay(trigger, task);
+                        }
+                    });
+                }
+
+                // 3. Always re-render Chart Visuals (safe to do repeatedly)
+                App.renderChart();
+                App.renderLegend();
+                App.renderTeamAvatars();
             },
 
             renderAll: () => {
@@ -395,7 +492,6 @@
                 const c = document.getElementById('team-avatars');
                 if(!c) return;
                 c.innerHTML = '';
-                // Limit to 4 avatars + count
                 state.config.picMap.slice(0, 4).forEach(p => {
                     const d = document.createElement('div');
                     d.className = 'avatar';
@@ -404,15 +500,9 @@
                     d.title = p.name;
                     c.appendChild(d);
                 });
-                if(state.config.picMap.length > 4) {
-                    const more = document.createElement('div');
-                    more.className = 'avatar bg-gray-400';
-                    more.innerText = `+${state.config.picMap.length - 4}`;
-                    c.appendChild(more);
-                }
             },
 
-            // --- Optimized Table Render ---
+            // --- Optimized Table Render (Initial or Structural Change) ---
             renderTable: () => {
                 const tbody = document.getElementById('task-table-body');
                 tbody.innerHTML = '';
@@ -455,7 +545,7 @@
                 lucide.createIcons();
             },
 
-            // --- Optimized Input Handling (Prevents Blinking/Focus Loss) ---
+            // --- Optimized Input Handling ---
             handleInput: (id, field, value) => {
                 const task = state.tasks.find(t => t.id === id);
                 if (!task) return;
@@ -479,9 +569,8 @@
                     task[field] = value;
                 }
 
-                // Only render visuals (Chart) to keep table input focused
-                App.renderChart();
-                App.autoSave();
+                App.renderChart(); // Visuals update instantly locally
+                App.autoSave(); // Sync to others
             },
 
             // --- PIC Components ---
@@ -689,6 +778,7 @@
                     status: 'Pending',
                     type: 'Major Activity'
                 });
+                // Structural change requires full render
                 App.renderTable();
                 App.renderChart();
                 App.autoSave();
@@ -706,10 +796,11 @@
             // --- Auto Save & Sharing ---
             autoSave: () => {
                 clearTimeout(state.saveTimer);
-                document.getElementById('save-status').style.opacity = '0';
+                document.getElementById('save-status').innerText = 'Saving...';
+                document.getElementById('save-status').className = "text-[10px] text-blue-500 font-bold transition-colors";
                 state.saveTimer = setTimeout(() => {
                     App.saveChart(true);
-                }, 1000); 
+                }, 800); 
             },
 
             saveChart: async (silent = false) => {
@@ -733,12 +824,12 @@
                     }
                     
                     if(!silent) App.showToast("Saved!", "success");
-                    else document.getElementById('save-status').style.opacity = '1';
                     
-                    // Update Last Updated Text Immediately
+                    // Update Text
                     const d = new Date();
                     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    document.getElementById('last-updated').innerText = `Saved: ${dateStr}`;
+                    document.getElementById('save-status').innerText = `Saved ${dateStr}`;
+                    document.getElementById('save-status').className = "text-[10px] text-gray-400 truncate max-w-[150px]";
                     
                 } catch(e) {
                     console.error(e);
