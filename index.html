@@ -100,21 +100,21 @@
 
     <!-- Navbar -->
     <nav class="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0">
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
             <div class="bg-blue-600 p-2 rounded-lg text-white shadow-blue-200 shadow-lg shrink-0">
                 <i data-lucide="align-left" class="w-5 h-5"></i>
             </div>
-            <div class="flex flex-col min-w-0">
+            <div class="flex flex-col min-w-0 flex-1 mr-4">
                 <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full truncate" value="Project Timeline">
-                <div class="flex items-center gap-2 text-[10px] text-gray-400">
-                    <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-64" value="GANTTMASTER">
-                    <span class="w-px h-3 bg-gray-300"></span>
-                    <span id="save-status" class="truncate max-w-[200px] transition-colors whitespace-nowrap">Unsaved</span>
+                <div class="flex items-center gap-2 text-[10px] text-gray-400 w-full">
+                    <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full max-w-[250px]" value="GANTTMASTER">
+                    <span class="w-px h-3 bg-gray-300 shrink-0"></span>
+                    <span id="save-status" class="truncate min-w-0 shrink-0 text-gray-400">Unsaved</span>
                 </div>
             </div>
         </div>
         
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 shrink-0">
             <!-- Presence / Team Display -->
             <div class="hidden lg:flex items-center gap-2 mr-2">
                 <div id="active-users" class="avatar-stack pr-2 border-r border-gray-200">
@@ -368,8 +368,15 @@
                 tp.onscroll = function() { if (!syncL) { syncR = true; cp.scrollTop = this.scrollTop; } syncL = false; };
                 cp.onscroll = function() { if (!syncR) { syncL = true; tp.scrollTop = this.scrollTop; } syncR = false; };
 
-                document.getElementById('app-title').oninput = (e) => { state.config.title = e.target.value; document.title = e.target.value + " | GanttMaster"; App.autoSave(); };
-                document.getElementById('app-subtitle').oninput = (e) => { state.config.subtitle = e.target.value; App.autoSave(); };
+                document.getElementById('app-title').oninput = (e) => { 
+                    state.config.title = e.target.value; 
+                    document.title = e.target.value + " | GanttMaster";
+                    App.autoSave(); 
+                };
+                document.getElementById('app-subtitle').oninput = (e) => { 
+                    state.config.subtitle = e.target.value; 
+                    App.autoSave(); 
+                };
                 
                 const zoomInp = document.getElementById('zoom-input');
                 zoomInp.onblur = App.handleZoomSubmit;
@@ -929,19 +936,42 @@
                 }
             },
 
+            // --- Updated Config Updater ---
+            updateConfig: (path, index, field, value) => {
+                if (path === 'title') {
+                    state.config.title = value;
+                    document.getElementById('app-title').value = value;
+                }
+                if (path === 'picMap') {
+                    state.config.picMap[index][field] = value;
+                }
+                if (path === 'statusMap') {
+                    state.config.statusMap[index][field] = value;
+                }
+                
+                // For colors, we want immediate visual feedback
+                if (field === 'color' || path === 'themeColor') {
+                    if (path === 'themeColor') state.config.themeColor = value;
+                    App.renderChart();
+                    App.renderLegend();
+                }
+                
+                App.autoSave();
+            },
+
             renderSettings: () => {
                 const c = document.getElementById('settings-content');
                 c.innerHTML = `
                     <div class="space-y-6">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1">Chart Title</label>
-                            <input class="w-full border rounded px-3 py-2 text-sm" value="${state.config.title}" oninput="state.config.title=this.value; document.getElementById('app-title').value=this.value; app.autoSave();">
+                            <input class="w-full border rounded px-3 py-2 text-sm" value="${state.config.title}" oninput="app.updateConfig('title', null, null, this.value)">
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1">Theme Base Color (For Activities)</label>
                             <div class="flex items-center gap-3">
-                                <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" oninput="state.config.themeColor=this.value; app.renderChart(); app.renderLegend(); app.autoSave();">
+                                <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" oninput="app.updateConfig('themeColor', null, null, this.value)">
                                 <span class="text-xs text-gray-400">Activity colors are auto-generated gradients of this color.</span>
                             </div>
                         </div>
@@ -953,9 +983,9 @@
                             </div>
                             ${state.config.picMap.map((p, i) => `
                                 <div class="flex gap-2 mb-2 items-center">
-                                    <input class="w-16 border rounded px-2 py-1 text-sm uppercase" value="${p.abbr}" oninput="state.config.picMap[${i}].abbr=this.value; app.autoSave();" onblur="app.renderAll()">
-                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${p.name}" oninput="state.config.picMap[${i}].name=this.value; app.autoSave();" onblur="app.renderAll()">
-                                    <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${p.color}" oninput="state.config.picMap[${i}].color=this.value; app.renderAll(); app.autoSave();">
+                                    <input class="w-16 border rounded px-2 py-1 text-sm uppercase" value="${p.abbr}" oninput="app.updateConfig('picMap', ${i}, 'abbr', this.value)">
+                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${p.name}" oninput="app.updateConfig('picMap', ${i}, 'name', this.value)">
+                                    <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${p.color}" oninput="app.updateConfig('picMap', ${i}, 'color', this.value)">
                                     <button onclick="app.removeConfigItem('pic', ${i})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                 </div>
                             `).join('')}
@@ -968,8 +998,8 @@
                             </div>
                             ${state.config.statusMap.map((s, i) => `
                                 <div class="flex gap-2 mb-2 items-center">
-                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${s.name}" oninput="state.config.statusMap[${i}].name=this.value; app.autoSave();" onblur="app.renderAll()">
-                                    <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${s.color}" oninput="state.config.statusMap[${i}].color=this.value; app.renderAll(); app.autoSave();">
+                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${s.name}" oninput="app.updateConfig('statusMap', ${i}, 'name', this.value)">
+                                    <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${s.color}" oninput="app.updateConfig('statusMap', ${i}, 'color', this.value)">
                                     <button onclick="app.removeConfigItem('status', ${i})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                 </div>
                             `).join('')}
@@ -994,4 +1024,3 @@
     </script>
 </body>
 </html>
-
