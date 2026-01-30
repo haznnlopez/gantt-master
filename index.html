@@ -58,58 +58,76 @@
         .row-height { height: 52px; }
         .header-height { height: 50px; }
         
-        /* Dropdown transition */
-        .dropdown-enter { transform: scale(0.95); opacity: 0; }
-        .dropdown-enter-active { transform: scale(1); opacity: 1; transition: all 0.1s ease-out; }
+        /* Avatar Stack */
+        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; }
+        .avatar-stack .avatar { 
+            width: 24px; height: 24px; border-radius: 50%; 
+            border: 2px solid white; margin-left: -8px; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: white;
+        }
+        .avatar-stack .avatar:first-child { margin-left: 0; }
     </style>
 </head>
 <body class="bg-white text-slate-800 h-screen flex flex-col overflow-hidden">
 
     <!-- Navbar -->
     <nav class="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-lg text-white shadow-blue-200 shadow-lg">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="bg-blue-600 p-2 rounded-lg text-white shadow-blue-200 shadow-lg shrink-0">
                 <i data-lucide="align-left" class="w-5 h-5"></i>
             </div>
-            <div>
-                <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full" value="Project Timeline 2024">
-                <div class="flex items-center gap-2">
-                    <input id="app-subtitle" type="text" class="text-[10px] text-gray-400 uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-24" value="GANTTMASTER">
-                    <span id="save-status" class="text-[10px] text-green-600 font-medium opacity-0 transition-opacity">Saved</span>
+            <div class="flex flex-col min-w-0">
+                <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full truncate" value="Project Timeline">
+                <div class="flex items-center gap-2 text-[10px] text-gray-400">
+                    <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-24" value="GANTTMASTER">
+                    <span class="w-px h-3 bg-gray-300"></span>
+                    <span id="last-updated" class="truncate max-w-[150px]">Unsaved</span>
                 </div>
             </div>
         </div>
         
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-4">
+            <!-- Team Display -->
+            <div class="hidden lg:flex items-center gap-2 mr-2">
+                <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Team</span>
+                <div id="team-avatars" class="avatar-stack">
+                    <!-- Avatars injected via JS -->
+                </div>
+            </div>
+
             <!-- Zoom Controls -->
-            <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1 mr-2">
+            <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
                 <button onclick="app.zoomOut()" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-white rounded transition-colors" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
                 <input id="zoom-input" type="text" class="bg-transparent text-xs font-bold text-gray-600 outline-none mx-1 w-10 text-center focus:bg-white rounded" value="100%">
                 <button onclick="app.zoomIn()" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-white rounded transition-colors" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
             </div>
 
-            <div class="h-6 w-px bg-gray-200 mx-2 hidden md:block"></div>
+            <div class="h-6 w-px bg-gray-200 hidden md:block"></div>
             
-            <button onclick="app.toggleSettings()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"><i data-lucide="settings" class="w-5 h-5"></i></button>
-            <button onclick="app.saveChart()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"><i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span></button>
-            <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share</span></button>
+            <button onclick="app.toggleSettings()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors" title="Settings"><i data-lucide="settings" class="w-5 h-5"></i></button>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="app.saveChart()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"><i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span></button>
+                <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share</span></button>
+            </div>
         </div>
     </nav>
 
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden relative">
         
-        <!-- Table Pane (Width increased to 650px) -->
-        <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 bg-white h-full custom-scrollbar flex-none z-10" style="width: 650px;">
-            <table class="w-full text-sm text-left table-fixed min-w-[650px]">
+        <!-- Table Pane (Width increased for better visibility) -->
+        <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 bg-white h-full custom-scrollbar flex-none z-10 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]" style="width: 700px;">
+            <table class="w-full text-sm text-left table-fixed min-w-[700px]">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-20 header-height">
                     <tr>
                         <th class="px-2 align-middle w-10 text-center">#</th>
-                        <th class="px-2 align-middle w-56">Activity</th>
+                        <th class="px-2 align-middle w-64">Activity</th>
                         <th class="px-2 align-middle w-28">Start</th>
                         <th class="px-2 align-middle w-28">End</th>
                         <th class="px-2 align-middle w-12 text-center">Days</th>
-                        <th class="px-2 align-middle w-24">PIC</th>
+                        <th class="px-2 align-middle w-28">PIC</th>
                         <th class="px-2 align-middle w-28">Status</th>
                         <th class="px-2 align-middle w-10"></th>
                     </tr>
@@ -122,9 +140,9 @@
 
         <!-- Chart Pane -->
         <div id="chart-pane" class="flex-1 overflow-auto bg-gray-50/50 relative custom-scrollbar h-full cursor-grab">
-            <div id="chart-content" class="relative">
+            <div id="chart-content" class="relative pb-20">
                 <!-- Header Dates -->
-                <div id="chart-header" class="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10 header-height">
+                <div id="chart-header" class="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10 header-height shadow-sm">
                     <!-- Dates generated by JS -->
                 </div>
                 <!-- Bars -->
@@ -132,8 +150,8 @@
                     <!-- Bars generated by JS -->
                 </div>
                 <!-- Today Line -->
-                <div id="today-line" class="absolute top-0 bottom-0 border-l-2 border-red-500/30 z-0 pointer-events-none hidden">
-                    <div class="bg-red-500 text-white text-[9px] px-1 rounded absolute -top-1 -left-4 shadow-sm z-20">Today</div>
+                <div id="today-line" class="absolute top-0 bottom-0 border-l-2 border-red-500/40 z-0 pointer-events-none hidden">
+                    <div class="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm absolute -top-1 -left-5 z-20 font-bold tracking-wide">TODAY</div>
                 </div>
             </div>
         </div>
@@ -143,19 +161,22 @@
     <!-- Floating Legend Button -->
     <div class="fixed bottom-6 right-6 z-[60]">
         <button onclick="app.toggleLegend()" class="bg-gray-800 text-white px-4 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-bold hover:bg-gray-900 transition-all hover:scale-105">
-            <i data-lucide="users" class="w-4 h-4"></i>
-            <span id="legend-chevron"><i data-lucide="chevron-up" class="w-4 h-4"></i></span>
+            <i data-lucide="map" class="w-4 h-4"></i>
+            <span>Legend</span>
+            <span id="legend-chevron" class="ml-1"><i data-lucide="chevron-up" class="w-4 h-4"></i></span>
         </button>
     </div>
 
     <!-- Legend Panel -->
-    <div id="legend-panel" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 translate-y-full">
-        <div class="p-6 relative">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg text-gray-800">Chart Legends</h3>
-                <button onclick="app.toggleLegend()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <div id="legend-panel" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 translate-y-full">
+        <div class="p-6 relative max-w-7xl mx-auto">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">
+                    <i data-lucide="map" class="w-5 h-5 text-gray-400"></i> Chart Legend
+                </h3>
+                <button onclick="app.toggleLegend()" class="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div id="legend-content" class="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8">
+            <div id="legend-content" class="grid grid-cols-1 md:grid-cols-3 gap-12 pb-4">
                 <!-- Legend items generated by JS -->
             </div>
         </div>
@@ -163,22 +184,22 @@
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in flex flex-col max-h-[85vh]">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                 <h3 class="font-bold text-gray-800 flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4"></i> Configuration</h3>
-                <button onclick="app.toggleSettings()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="app.toggleSettings()" class="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div id="settings-content" class="p-6 max-h-[70vh] overflow-y-auto space-y-6 custom-scrollbar">
+            <div id="settings-content" class="p-6 overflow-y-auto custom-scrollbar">
                 <!-- Settings inputs generated by JS -->
             </div>
-            <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-                <button onclick="app.toggleSettings()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Done</button>
+            <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
+                <button onclick="app.toggleSettings()" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors">Done</button>
             </div>
         </div>
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="hidden fixed bottom-8 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2 z-[70] transition-all duration-300">
+    <div id="toast" class="hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2 z-[70] transition-all duration-300">
         <span id="toast-icon"></span>
         <span id="toast-message"></span>
     </div>
@@ -186,9 +207,9 @@
     <!-- Custom Tooltip -->
     <div id="custom-tooltip" class="hidden fixed z-[100] bg-gray-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none mt-[-8px]">
         <div id="tooltip-title" class="font-bold mb-1 border-b border-gray-700 pb-1"></div>
-        <div class="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[10px] text-gray-300">
-            <span>Status:</span> <span id="tooltip-status" class="text-white"></span>
-            <span>Date:</span> <span id="tooltip-date" class="text-white"></span>
+        <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10px] text-gray-300">
+            <span>Status:</span> <span id="tooltip-status" class="text-white font-medium"></span>
+            <span>Period:</span> <span id="tooltip-date" class="text-white font-mono"></span>
         </div>
         <div class="tooltip-arrow"></div>
     </div>
@@ -214,12 +235,11 @@
         };
 
         if (typeof __firebase_config !== 'undefined') {
-            try {
-                firebaseConfig = JSON.parse(__firebase_config);
-            } catch(e) { console.log('Using default/manual config'); }
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
         }
         
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gantt-master-app';
+        // Use a consistent ID for public sharing if standard hosting is used
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gantt-master-public';
         // =================================================================================
 
         let appInstance, authInstance, dbInstance;
@@ -230,7 +250,7 @@
                 authInstance = getAuth(appInstance);
                 dbInstance = getFirestore(appInstance);
             } else {
-                console.warn("Firebase not configured.");
+                console.warn("Firebase not configured properly.");
             }
         } catch(e) {
             console.error("Firebase Init Error:", e);
@@ -245,8 +265,8 @@
             activeDropdown: null,
             saveTimer: null,
             config: {
-                title: "Project Timeline 2024",
-                subtitle: "GanttMaster",
+                title: "Project Timeline",
+                subtitle: "GANTTMASTER",
                 picMap: [
                     { id: '1', abbr: 'TL', name: 'Team Lead', color: '#3b82f6' },
                     { id: '2', abbr: 'DEV', name: 'Developer', color: '#8b5cf6' },
@@ -271,6 +291,7 @@
         };
 
         function generateId() { return Math.random().toString(36).substr(2, 9); }
+        // MM/DD/YYYY Format
         function formatDate(str) { if(!str) return ''; const d = new Date(str); return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); }
         function addDays(str, days) { const d = new Date(str); d.setDate(d.getDate() + parseInt(days)); return d.toISOString().split('T')[0]; }
         function getDaysDiff(start, end) { return Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); }
@@ -285,17 +306,18 @@
                     App.renderAll();
                 }
 
-                // Sync Scrolling
                 const tp = document.getElementById('table-pane'), cp = document.getElementById('chart-pane');
                 let syncL = false, syncR = false;
                 tp.onscroll = function() { if (!syncL) { syncR = true; cp.scrollTop = this.scrollTop; } syncL = false; };
                 cp.onscroll = function() { if (!syncR) { syncL = true; tp.scrollTop = this.scrollTop; } syncR = false; };
 
-                // Event Listeners for Title
                 document.getElementById('app-title').oninput = (e) => { state.config.title = e.target.value; App.autoSave(); };
                 document.getElementById('app-subtitle').oninput = (e) => { state.config.subtitle = e.target.value; App.autoSave(); };
                 
-                // Click Outside
+                const zoomInp = document.getElementById('zoom-input');
+                zoomInp.onblur = App.handleZoomSubmit;
+                zoomInp.onkeydown = (e) => { if(e.key === 'Enter') App.handleZoomSubmit(); };
+
                 document.addEventListener('click', (e) => {
                     if (!e.target.closest('.pic-dropdown-container') && state.activeDropdown) {
                         const el = document.getElementById(`dropdown-${state.activeDropdown}`);
@@ -308,31 +330,52 @@
             loadData: () => {
                 const params = new URLSearchParams(window.location.search);
                 const id = params.get('id');
+                
                 if (id && dbInstance) {
                     state.chartId = id;
-                    onSnapshot(doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', id), (docSnap) => {
+                    // Robust check: Ensure collection path is valid. Using 'public' segment as per logic.
+                    const docRef = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', id);
+                    
+                    onSnapshot(docRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
-                            // Only full re-render if we aren't actively editing (focus check could be here, but simpler to just check if tasks length changed or drastic config change)
-                            const isEditing = document.activeElement.tagName === 'INPUT';
+                            const isEditing = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT';
                             
-                            state.config = { ...DEFAULT_CONFIG, ...data.config };
-                            state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
+                            // Safe merge logic
+                            if(data.config) state.config = { ...state.config, ...data.config };
+                            if(data.tasks) state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
                             
+                            // Update Meta
                             document.getElementById('app-title').value = state.config.title;
                             document.getElementById('app-subtitle').value = state.config.subtitle;
                             
-                            // If user is editing, we skip full table render to prevent focus loss, only update chart
+                            // Update Timestamp & Author
+                            if(data.lastUpdated) {
+                                const d = new Date(data.lastUpdated);
+                                const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                const author = data.authorId ? data.authorId.substring(0, 4) : 'Anon';
+                                document.getElementById('last-updated').innerText = `Saved: ${dateStr} (ID: ${author})`;
+                            }
+
+                            // If user is actively typing, DO NOT re-render table to prevent focus loss.
+                            // Only re-render chart visuals.
                             if (!isEditing) {
                                 App.renderTable();
-                            } else {
-                                // If editing, we trust local state for inputs, but update chart visuals
-                                App.renderChart();
                             }
-                            // Always update chart and legend
+                            
+                            // Always update chart visual elements
                             App.renderChart();
-                            App.renderLegend();
+                            App.renderLegend(); // Updates avatars too
+                        } else {
+                            // If ID in URL but doc doesn't exist, create it locally but warn user
+                            App.showToast("Chart ID not found. Starting fresh.", "error");
+                            window.history.pushState({}, '', window.location.pathname); // Clear invalid ID
+                            state.chartId = null;
+                            App.renderAll();
                         }
+                    }, (error) => {
+                        console.error("Snapshot Error:", error);
+                        App.showToast("Sync Error. Check console.", "error");
                     });
                 } else {
                     App.renderAll();
@@ -344,10 +387,32 @@
                 App.renderChart();
                 App.renderLegend();
                 App.renderSettings();
+                App.renderTeamAvatars();
                 lucide.createIcons();
             },
 
-            // --- Table Rendering (Only called on structure change) ---
+            renderTeamAvatars: () => {
+                const c = document.getElementById('team-avatars');
+                if(!c) return;
+                c.innerHTML = '';
+                // Limit to 4 avatars + count
+                state.config.picMap.slice(0, 4).forEach(p => {
+                    const d = document.createElement('div');
+                    d.className = 'avatar';
+                    d.style.backgroundColor = p.color;
+                    d.innerText = p.abbr.substring(0, 2);
+                    d.title = p.name;
+                    c.appendChild(d);
+                });
+                if(state.config.picMap.length > 4) {
+                    const more = document.createElement('div');
+                    more.className = 'avatar bg-gray-400';
+                    more.innerText = `+${state.config.picMap.length - 4}`;
+                    c.appendChild(more);
+                }
+            },
+
+            // --- Optimized Table Render ---
             renderTable: () => {
                 const tbody = document.getElementById('task-table-body');
                 tbody.innerHTML = '';
@@ -360,14 +425,14 @@
                         <td class="px-2 align-middle">
                             <div class="flex flex-col justify-center">
                                 <input id="desc-${task.id}" type="text" class="w-full bg-transparent outline-none font-medium text-gray-800 focus:border-b focus:border-blue-500 truncate" value="${task.description}" oninput="app.handleInput('${task.id}', 'description', this.value)">
-                                <select class="text-[10px] text-gray-400 bg-transparent outline-none cursor-pointer mt-0.5" onchange="app.handleInput('${task.id}', 'type', this.value)">
+                                <select class="text-[10px] text-gray-400 bg-transparent outline-none cursor-pointer mt-0.5 w-full" onchange="app.handleInput('${task.id}', 'type', this.value)">
                                     ${state.config.activityTypes.map(t => `<option value="${t.name}" ${task.type === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
                                 </select>
                             </div>
                         </td>
-                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value)"></td>
-                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value)"></td>
-                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value)"></td>
+                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value)"></td>
+                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value)"></td>
+                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs font-semibold text-blue-600" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value)"></td>
                         <td class="px-2 align-middle pic-cell relative"></td>
                         <td class="px-2 align-middle">
                              <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer" onchange="app.handleInput('${task.id}', 'status', this.value)">
@@ -375,7 +440,7 @@
                              </select>
                         </td>
                         <td class="px-2 align-middle text-center">
-                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 transition-colors" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-red-50" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     `;
                     const picCell = tr.querySelector('.pic-cell');
@@ -385,12 +450,12 @@
 
                 const addRow = document.createElement('tr');
                 addRow.className = "row-height";
-                addRow.innerHTML = `<td colspan="8" class="px-2 py-2 align-middle"><button onclick="app.addTask()" class="flex items-center gap-2 text-blue-600 text-sm font-medium hover:bg-blue-50 px-3 py-2 rounded-lg w-full transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Add Activity</button></td>`;
+                addRow.innerHTML = `<td colspan="8" class="px-2 py-2 align-middle"><button onclick="app.addTask()" class="flex items-center gap-2 text-blue-600 text-sm font-medium hover:bg-blue-50 px-3 py-2 rounded-lg w-full transition-colors border border-dashed border-blue-200"><i data-lucide="plus" class="w-4 h-4"></i> Add Activity</button></td>`;
                 tbody.appendChild(addRow);
                 lucide.createIcons();
             },
 
-            // --- Optimized Input Handling (No Re-render) ---
+            // --- Optimized Input Handling (Prevents Blinking/Focus Loss) ---
             handleInput: (id, field, value) => {
                 const task = state.tasks.find(t => t.id === id);
                 if (!task) return;
@@ -398,31 +463,28 @@
                 if (field === 'duration') {
                     const dur = parseInt(value) || 1;
                     task.duration = dur;
-                    // Update End Date Input Manually
                     const endInput = document.getElementById(`end-${id}`);
                     if(endInput) endInput.value = addDays(task.startDate, dur - 1);
                 } else if (field === 'startDate') {
                     task.startDate = value;
-                    // Update End Date Input Manually
                     const endInput = document.getElementById(`end-${id}`);
                     if(endInput) endInput.value = addDays(value, task.duration - 1);
                 } else if (field === 'endDate') {
                     const diff = getDaysDiff(task.startDate, value);
                     const newDur = diff >= 0 ? diff + 1 : 1;
                     task.duration = newDur;
-                    // Update Duration Input Manually
                     const durInput = document.getElementById(`dur-${id}`);
                     if(durInput) durInput.value = newDur;
                 } else {
                     task[field] = value;
                 }
 
-                // Only re-render the chart visuals, NOT the table
+                // Only render visuals (Chart) to keep table input focused
                 App.renderChart();
                 App.autoSave();
             },
 
-            // --- PIC Logic ---
+            // --- PIC Components ---
             renderPicTrigger: (task) => {
                 const div = document.createElement('div');
                 div.className = "pic-dropdown-container w-full h-full flex items-center";
@@ -445,9 +507,10 @@
                     task.pics.forEach(abbr => {
                         const conf = state.config.picMap.find(p => p.abbr === abbr) || { color: '#000' };
                         const tag = document.createElement('span');
-                        tag.className = "text-[10px] font-bold px-1 rounded";
+                        tag.className = "text-[10px] font-bold px-1 rounded shadow-sm";
                         tag.style.color = conf.color;
-                        tag.style.backgroundColor = `${conf.color}20`;
+                        tag.style.backgroundColor = `${conf.color}15`;
+                        tag.style.border = `1px solid ${conf.color}30`;
                         tag.innerText = abbr;
                         el.appendChild(tag);
                     });
@@ -456,7 +519,6 @@
 
             openPicDropdown: (e, task) => {
                 e.stopPropagation();
-                // Close others
                 if(state.activeDropdown) {
                     const existing = document.getElementById(`dropdown-${state.activeDropdown}`);
                     if(existing) existing.remove();
@@ -472,28 +534,22 @@
                 
                 const menu = document.createElement('div');
                 menu.id = `dropdown-${task.id}`;
-                menu.className = "absolute top-8 left-0 bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-50 w-48 animate-fade-in";
+                menu.className = "absolute top-8 left-0 bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-50 w-48 dropdown-enter dropdown-enter-active";
                 menu.onclick = (e) => e.stopPropagation();
                 
-                menu.innerHTML = `<div class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wider">Assign People</div>`;
+                menu.innerHTML = `<div class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wider px-2">Assign People</div>`;
                 
                 state.config.picMap.forEach(p => {
                     const isSelected = task.pics?.includes(p.abbr);
                     const item = document.createElement('div');
-                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`;
+                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`;
                     item.onclick = () => {
                         if (task.pics.includes(p.abbr)) task.pics = task.pics.filter(x => x !== p.abbr);
                         else task.pics.push(p.abbr);
                         
-                        // Update UI without re-render
-                        const trigger = container.querySelector('div'); // The trigger div
+                        const trigger = container.querySelector('div');
                         App.updatePicDisplay(trigger, task);
-                        
-                        // Re-render dropdown item to toggle check
-                        item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs ${!isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`; // Inverted logic for next click visual
-                        // Simple hack: just close and re-open or update innerHTML. 
-                        // Actually, easiest is just update chart and trigger autoSave
-                        App.openPicDropdown(e, task); // Refresh dropdown
+                        App.openPicDropdown(e, task);
                         App.renderChart();
                         App.autoSave();
                     };
@@ -512,7 +568,7 @@
                 lucide.createIcons();
             },
 
-            // --- Chart & Visuals ---
+            // --- Chart Rendering ---
             renderChart: () => {
                 const header = document.getElementById('chart-header');
                 const bars = document.getElementById('chart-bars');
@@ -554,7 +610,7 @@
                     const row = document.createElement('div');
                     row.className = "relative row-height w-full border-b border-dashed border-gray-100 flex items-center group hover:bg-white/50";
                     const bar = document.createElement('div');
-                    bar.className = `absolute h-6 rounded-sm text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 ${isCompleted ? 'shadow-sm' : ''}`;
+                    bar.className = `absolute h-6 rounded-sm text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 hover:shadow-md ${isCompleted ? 'shadow-sm' : ''}`;
                     bar.style.left = `${startOffset * state.zoom}px`;
                     bar.style.width = `${task.duration * state.zoom}px`;
                     bar.style.backgroundColor = isCompleted ? typeConfig.color : `${typeConfig.color}15`;
@@ -568,7 +624,6 @@
                     bars.appendChild(row);
                 });
                 
-                // Buffer row
                 const buf = document.createElement('div');
                 buf.className = "row-height border-b border-transparent";
                 bars.appendChild(buf);
@@ -581,32 +636,39 @@
                 } else { todayLine.style.display = 'none'; }
             },
 
+            // --- Visuals ---
             renderLegend: () => {
                 const c = document.getElementById('legend-content');
                 c.innerHTML = '';
+                
+                // Types
                 const c1 = document.createElement('div');
                 c1.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Activity Types</h4>`;
                 state.config.activityTypes.forEach(t => c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${t.color}"></div><span class="text-sm text-gray-600">${t.name}</span></div>`);
                 c.appendChild(c1);
                 
+                // Status
                 const c2 = document.createElement('div');
-                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Status Styles</h4><div class="space-y-2"><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600">Completed</span></div><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-700">Dashed</div><span class="text-sm text-gray-600">Ongoing</span></div></div>`;
+                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Status</h4><div class="space-y-2"><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600">Completed</span></div><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-700">Dashed</div><span class="text-sm text-gray-600">Ongoing</span></div></div>`;
                 c.appendChild(c2);
 
+                // PICs
                 const c3 = document.createElement('div');
                 c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">PIC</h4><div class="grid grid-cols-2 gap-2"></div>`;
                 const grid = c3.querySelector('.grid');
                 state.config.picMap.forEach(p => grid.innerHTML += `<div class="flex items-center gap-2"><span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:${p.color}20; color:${p.color}">${p.abbr}</span><span class="text-sm text-gray-600">${p.name}</span></div>`);
                 c.appendChild(c3);
+                
+                // Update Settings Modal List as well if open (simplified)
             },
 
-            // --- Tooltip ---
             showTooltip: (e, task) => {
                 const tip = document.getElementById('custom-tooltip');
                 const rect = e.target.getBoundingClientRect();
                 document.getElementById('tooltip-title').innerText = `${task.activityNo} ${task.description}`;
                 document.getElementById('tooltip-status').innerText = task.status;
                 const end = addDays(task.startDate, task.duration - 1);
+                // MM/DD/YYYY Logic
                 document.getElementById('tooltip-date').innerText = `${formatDate(task.startDate)} - ${formatDate(end)}`;
                 tip.style.left = `${rect.left + (rect.width/2)}px`;
                 tip.style.top = `${rect.top}px`;
@@ -633,7 +695,7 @@
             },
 
             removeTask: (id) => {
-                if(confirm('Delete this activity?')) {
+                if(confirm('Are you sure you want to delete this activity?')) {
                     state.tasks = state.tasks.filter(t => t.id !== id);
                     App.renderTable();
                     App.renderChart();
@@ -641,13 +703,13 @@
                 }
             },
 
-            // --- Saving & Syncing ---
+            // --- Auto Save & Sharing ---
             autoSave: () => {
                 clearTimeout(state.saveTimer);
                 document.getElementById('save-status').style.opacity = '0';
                 state.saveTimer = setTimeout(() => {
                     App.saveChart(true);
-                }, 1000); // Save 1s after last edit
+                }, 1000); 
             },
 
             saveChart: async (silent = false) => {
@@ -673,6 +735,11 @@
                     if(!silent) App.showToast("Saved!", "success");
                     else document.getElementById('save-status').style.opacity = '1';
                     
+                    // Update Last Updated Text Immediately
+                    const d = new Date();
+                    const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    document.getElementById('last-updated').innerText = `Saved: ${dateStr}`;
+                    
                 } catch(e) {
                     console.error(e);
                     if(!silent) App.showToast("Error saving", "error");
@@ -691,9 +758,17 @@
                 });
             },
 
-            // --- UI Helpers ---
+            // --- Helpers ---
             zoomIn: () => { state.zoom = Math.min(state.zoom + 4, 80); App.updateZoom(); },
             zoomOut: () => { state.zoom = Math.max(state.zoom - 4, 8); App.updateZoom(); },
+            handleZoomSubmit: () => {
+                const inp = document.getElementById('zoom-input');
+                let val = parseInt(inp.value.replace('%', ''));
+                if (isNaN(val)) val = 100;
+                val = Math.max(20, Math.min(200, val));
+                state.zoom = (val / 100) * 40;
+                App.updateZoom();
+            },
             updateZoom: () => {
                 document.getElementById('zoom-input').value = Math.round((state.zoom / 40) * 100) + '%';
                 App.renderChart();
@@ -708,11 +783,33 @@
             },
             toggleSettings: () => {
                 document.getElementById('settings-modal').classList.toggle('hidden');
+                // Could render settings content here if needed
             },
-            renderSettings: () => { /* Settings inputs logic can go here */ },
+            renderSettings: () => {
+                // Populate settings modal with inputs for PICs, Statuses, etc.
+                const c = document.getElementById('settings-content');
+                c.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Chart Title</label>
+                            <input class="w-full border rounded px-3 py-2 text-sm" value="${state.config.title}" oninput="state.config.title=this.value; document.getElementById('app-title').value=this.value; app.autoSave();">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">Team Members</label>
+                            ${state.config.picMap.map((p, i) => `
+                                <div class="flex gap-2 mb-2">
+                                    <input class="w-16 border rounded px-2 py-1 text-sm uppercase" value="${p.abbr}" onchange="state.config.picMap[${i}].abbr=this.value; app.renderAll(); app.autoSave();">
+                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${p.name}" onchange="state.config.picMap[${i}].name=this.value; app.renderAll(); app.autoSave();">
+                                    <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${p.color}" onchange="state.config.picMap[${i}].color=this.value; app.renderAll(); app.autoSave();">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            },
             showToast: (msg, type) => {
                 const t = document.getElementById('toast');
-                t.className = `fixed bottom-8 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2 z-[70] transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`;
+                t.className = `fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2 z-[70] transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`;
                 document.getElementById('toast-message').innerText = msg;
                 document.getElementById('toast-icon').innerHTML = type === 'success' ? '<i data-lucide="check" class="w-3 h-3"></i>' : '';
                 lucide.createIcons();
