@@ -186,13 +186,12 @@
         // =================================================================================
         
         let firebaseConfig = {
-            apiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
-            authDomain: "gantt-master.firebaseapp.com",
-            projectId: "gantt-master",
-            storageBucket: "gantt-master.firebasestorage.app",
-            messagingSenderId: "822947741694",
-            appId: "1:822947741694:web:41f0828656259cc0200aaf",
-            measurementId: "G-2KK6BNYHPP"
+            apiKey: "PASTE_YOUR_API_KEY_HERE",
+            authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "PASTE_YOUR_PROJECT_ID",
+            storageBucket: "PASTE_YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "PASTE_YOUR_SENDER_ID",
+            appId: "PASTE_YOUR_APP_ID"
         };
 
         // This block auto-fills keys ONLY when previewing in this chat environment.
@@ -716,7 +715,7 @@
             // --- Saving ---
             saveChart: async () => {
                 if(!dbInstance) {
-                    App.showToast("No Database Configured", "error");
+                    alert("Please configure your Firebase keys in the code (lines 330-340) to enable saving and sharing.");
                     return;
                 }
                 App.showToast("Saving...", "info");
@@ -731,6 +730,7 @@
                     
                     if (!state.chartId) {
                         state.chartId = idToUse;
+                        // Use the share logic to construct the URL
                         const url = new URL(window.location.href);
                         url.searchParams.set('id', idToUse);
                         window.history.pushState({}, '', url);
@@ -738,15 +738,47 @@
                     App.showToast("Chart Saved Successfully!", "success");
                 } catch(e) {
                     console.error(e);
-                    App.showToast("Failed to save.", "error");
+                    App.showToast("Failed to save. Check console.", "error");
                 }
             },
 
             shareLink: async () => {
-                if(!state.chartId) await App.saveChart();
+                if(!dbInstance) {
+                    alert("Please configure your Firebase keys in the code to enable sharing.");
+                    return;
+                }
+
+                // Ensure data is saved first to generate an ID
+                if(!state.chartId) {
+                    await App.saveChart();
+                }
+                
+                // If ID is available (save successful)
                 if(state.chartId) {
-                    navigator.clipboard.writeText(window.location.href);
-                    App.showToast("Link Copied to Clipboard!", "success");
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('id', state.chartId);
+                    const shareableLink = url.toString();
+
+                    try {
+                        await navigator.clipboard.writeText(shareableLink);
+                        App.showToast("Link Copied to Clipboard!", "success");
+                        // Ensure address bar reflects the link too
+                        window.history.replaceState({}, '', shareableLink);
+                    } catch(e) {
+                        // Fallback for browsers blocking clipboard access
+                        const input = document.createElement('textarea');
+                        input.value = shareableLink;
+                        document.body.appendChild(input);
+                        input.select();
+                        try {
+                            document.execCommand('copy');
+                            App.showToast("Link Copied to Clipboard!", "success");
+                        } catch (err) {
+                            App.showToast("Could not copy link automatically.", "error");
+                            prompt("Copy this link:", shareableLink);
+                        }
+                        document.body.removeChild(input);
+                    }
                 }
             },
 
