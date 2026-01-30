@@ -7,6 +7,23 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            750: '#293548',
+                            850: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -22,6 +39,11 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Dark Mode Scrollbar */
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
         /* Hide Date Picker Icon - use click to activate */
         input[type="date"] { position: relative; }
@@ -42,21 +64,24 @@
         @keyframes fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
         
-        /* Tooltip Arrow */
-        .tooltip-arrow {
-            position: absolute;
-            left: 50%;
-            bottom: 0;
-            transform: translateX(-50%) translateY(100%);
-            width: 0; 
-            height: 0; 
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 6px solid rgba(17, 24, 39, 0.95);
-        }
-        
         .min-row-height { min-height: 52px; }
         .header-height { height: 50px; }
+        
+        /* Avatar Stack */
+        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; flex-direction: row-reverse; }
+        .avatar-stack .avatar { 
+            width: 28px; height: 28px; border-radius: 50%; 
+            border: 2px solid white; margin-left: -8px; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .dark .avatar-stack .avatar { border-color: #1e293b; }
+        .avatar-stack .avatar:hover { transform: translateY(-2px); z-index: 10; }
+        .avatar-stack .avatar:last-child { margin-left: 0; }
+        .online-dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border: 1px solid white; border-radius: 50%; }
         
         /* Hover Add Trigger */
         .hover-add-trigger {
@@ -81,19 +106,19 @@
         }
     </style>
 </head>
-<body class="bg-white text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
 
     <!-- Navbar -->
-    <nav class="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0">
+    <nav class="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0 transition-colors duration-200">
         <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="bg-blue-600 p-2 rounded-lg text-white shadow-blue-200 shadow-lg shrink-0">
+            <div class="bg-blue-600 p-2 rounded-lg text-white shadow-blue-200 dark:shadow-none shadow-lg shrink-0">
                 <i data-lucide="align-left" class="w-5 h-5"></i>
             </div>
             <div class="flex flex-col min-w-0 flex-1 mr-4">
-                <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full truncate" value="Project Timeline">
+                <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 dark:hover:bg-slate-700 focus:bg-gray-50 dark:focus:bg-slate-700 rounded px-1 transition-colors w-full truncate text-slate-800 dark:text-slate-100" value="Project Timeline">
                 <div class="flex items-center gap-2 text-[10px] text-gray-400 w-full">
-                    <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full max-w-[250px]" value="GANTTMASTER">
-                    <span class="w-px h-3 bg-gray-300 shrink-0"></span>
+                    <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 dark:hover:bg-slate-700 focus:bg-gray-50 dark:focus:bg-slate-700 rounded px-1 transition-colors w-full max-w-[250px]" value="GANTTMASTER">
+                    <span class="w-px h-3 bg-gray-300 dark:bg-slate-600 shrink-0"></span>
                     <span id="save-status" class="truncate min-w-0 shrink-0 text-gray-400">Unsaved</span>
                 </div>
             </div>
@@ -101,18 +126,22 @@
         
         <div class="flex items-center gap-4 shrink-0">
             <!-- Zoom Controls -->
-            <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
-                <button onclick="app.zoomOut()" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-white rounded transition-colors" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
-                <input id="zoom-input" type="text" class="bg-transparent text-xs font-bold text-gray-600 outline-none mx-1 w-10 text-center focus:bg-white rounded" value="100%">
-                <button onclick="app.zoomIn()" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-white rounded transition-colors" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+            <div class="hidden md:flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
+                <button onclick="app.zoomOut()" class="p-1.5 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                <input id="zoom-input" type="text" class="bg-transparent text-xs font-bold text-gray-600 dark:text-slate-200 outline-none mx-1 w-10 text-center focus:bg-white dark:focus:bg-slate-600 rounded" value="100%">
+                <button onclick="app.zoomIn()" class="p-1.5 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
             </div>
 
-            <div class="h-6 w-px bg-gray-200 hidden md:block"></div>
+            <div class="h-6 w-px bg-gray-200 dark:bg-slate-700 hidden md:block"></div>
             
-            <button onclick="app.toggleSettings()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors" title="Settings"><i data-lucide="settings" class="w-5 h-5"></i></button>
+            <button onclick="app.toggleDarkMode()" class="p-2 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="Toggle Dark Mode">
+                <i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i>
+            </button>
+
+            <button onclick="app.toggleSettings()" class="p-2 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="Settings"><i data-lucide="settings" class="w-5 h-5"></i></button>
             
             <div class="flex items-center gap-2">
-                <button onclick="app.saveChart()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"><i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span></button>
+                <button onclick="app.saveChart()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"><i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span></button>
                 <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share</span></button>
             </div>
         </div>
@@ -122,9 +151,9 @@
     <div class="flex-1 flex overflow-hidden relative">
         
         <!-- Table Pane -->
-        <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 bg-white h-full custom-scrollbar flex-none z-10 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]" style="width: 700px;">
+        <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 h-full custom-scrollbar flex-none z-10 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]" style="width: 700px;">
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-20 header-height">
+                <thead class="text-xs text-gray-700 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-20 header-height">
                     <tr>
                         <th class="px-2 align-middle w-14 text-center">#</th>
                         <th class="px-2 align-middle w-40">Activity</th>
@@ -143,10 +172,10 @@
         </div>
 
         <!-- Chart Pane -->
-        <div id="chart-pane" class="flex-1 overflow-auto bg-gray-50/50 relative custom-scrollbar h-full cursor-grab">
+        <div id="chart-pane" class="flex-1 overflow-auto bg-gray-50/50 dark:bg-slate-900 relative custom-scrollbar h-full cursor-grab">
             <div id="chart-content" class="relative pb-20">
                 <!-- Header Dates -->
-                <div id="chart-header" class="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10 header-height shadow-sm">
+                <div id="chart-header" class="flex border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 sticky top-0 z-10 header-height shadow-sm">
                     <!-- Dates generated by JS -->
                 </div>
                 <!-- Bars -->
@@ -164,7 +193,7 @@
 
     <!-- Floating Legend Button -->
     <div class="fixed bottom-6 right-6 z-[60]">
-        <button onclick="app.toggleLegend()" class="bg-gray-800 text-white px-4 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-bold hover:bg-gray-900 transition-all hover:scale-105">
+        <button onclick="app.toggleLegend()" class="bg-gray-800 dark:bg-slate-700 text-white px-4 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-bold hover:bg-gray-900 dark:hover:bg-slate-600 transition-all hover:scale-105">
             <i data-lucide="map" class="w-4 h-4"></i>
             <span>Legend</span>
             <span id="legend-chevron" class="ml-1"><i data-lucide="chevron-up" class="w-4 h-4"></i></span>
@@ -172,13 +201,13 @@
     </div>
 
     <!-- Legend Panel -->
-    <div id="legend-panel" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 translate-y-full">
+    <div id="legend-panel" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 translate-y-full text-slate-800 dark:text-slate-200">
         <div class="p-6 relative max-w-7xl mx-auto">
-            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-slate-700 pb-4">
+                <h3 class="font-bold text-lg flex items-center gap-2">
                     <i data-lucide="map" class="w-5 h-5 text-gray-400"></i> Chart Legend
                 </h3>
-                <button onclick="app.toggleLegend()" class="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="app.toggleLegend()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div id="legend-content" class="grid grid-cols-1 md:grid-cols-3 gap-12 pb-4">
                 <!-- Legend items generated by JS -->
@@ -188,15 +217,15 @@
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[85vh]">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-                <h3 class="font-bold text-gray-800 flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4"></i> Configuration</h3>
-                <button onclick="app.toggleSettings()" class="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col max-h-[85vh] text-slate-800 dark:text-slate-200">
+            <div class="p-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800 shrink-0">
+                <h3 class="font-bold flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4"></i> Configuration</h3>
+                <button onclick="app.toggleSettings()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-700"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div id="settings-content" class="p-6 overflow-y-auto custom-scrollbar">
                 <!-- Settings inputs generated by JS -->
             </div>
-            <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
+            <div class="p-4 bg-gray-50 dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex justify-end shrink-0">
                 <button onclick="app.toggleSettings()" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors">Done</button>
             </div>
         </div>
@@ -208,14 +237,14 @@
         <span id="toast-message"></span>
     </div>
 
-    <!-- Custom Tooltip -->
-    <div id="custom-tooltip" class="hidden fixed z-[100] bg-gray-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none mt-[-8px]">
+    <!-- Custom Tooltip (Updated Visuals) -->
+    <div id="custom-tooltip" class="hidden fixed z-[100] bg-gray-900/90 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none mt-[-8px]">
         <div id="tooltip-title" class="font-bold mb-1 border-b border-gray-700 pb-1"></div>
         <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10px] text-gray-300">
             <span>Status:</span> <span id="tooltip-status" class="text-white font-medium"></span>
             <span>Period:</span> <span id="tooltip-date" class="text-white font-mono"></span>
         </div>
-        <div class="tooltip-arrow"></div>
+        <!-- Arrow removed -->
     </div>
 
     <!-- Application Logic -->
@@ -267,6 +296,7 @@
             showLegend: false,
             activeDropdown: null,
             saveTimer: null,
+            darkMode: false,
             config: {
                 title: "Project Timeline",
                 subtitle: "GANTTMASTER",
@@ -334,6 +364,13 @@
                     App.renderAll();
                 }
 
+                // Initial Dark Mode Check
+                if (localStorage.getItem('gantt-theme') === 'dark' || (!('gantt-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                    state.darkMode = true;
+                    document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
+                }
+
                 const tp = document.getElementById('table-pane'), cp = document.getElementById('chart-pane');
                 let syncL = false, syncR = false;
                 tp.onscroll = function() { if (!syncL) { syncR = true; cp.scrollTop = this.scrollTop; } syncL = false; };
@@ -361,6 +398,21 @@
                         state.activeDropdown = null;
                     }
                 });
+            },
+
+            toggleDarkMode: () => {
+                state.darkMode = !state.darkMode;
+                const icon = document.getElementById('theme-icon');
+                if (state.darkMode) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('gantt-theme', 'dark');
+                    icon.setAttribute('data-lucide', 'sun');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('gantt-theme', 'light');
+                    icon.setAttribute('data-lucide', 'moon');
+                }
+                lucide.createIcons();
             },
 
             loadData: () => {
@@ -459,28 +511,28 @@
                 state.tasks.forEach((task, index) => {
                     const tr = document.createElement('tr');
                     tr.id = `tr-${task.id}`; // Add ID for height sync
-                    tr.className = "border-b border-gray-100 hover:bg-gray-50 group transition-colors min-row-height"; // Changed class
+                    tr.className = "border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 group transition-colors min-row-height"; 
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell">
-                            <input id="act-${task.id}" type="text" class="w-full bg-transparent outline-none font-bold text-gray-500 text-center text-xs" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)">
-                            <button onclick="app.insertTask(${index})" class="hover-add-trigger absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 bg-white border border-blue-200 text-blue-500 rounded-full w-5 h-5 flex items-center justify-center shadow-sm z-20 hover:bg-blue-50 hover:scale-110 cursor-pointer" title="Add activity below">
+                            <input id="act-${task.id}" type="text" class="w-full bg-transparent outline-none font-bold text-gray-500 dark:text-slate-400 text-center text-xs" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)">
+                            <button onclick="app.insertTask(${index})" class="hover-add-trigger absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 text-blue-500 dark:text-blue-400 rounded-full w-5 h-5 flex items-center justify-center shadow-sm z-20 hover:bg-blue-50 dark:hover:bg-slate-600 hover:scale-110 cursor-pointer" title="Add activity below">
                                 <i data-lucide="plus" class="w-3 h-3"></i>
                             </button>
                         </td>
                         <td class="px-2 align-middle py-1">
-                            <textarea id="desc-${task.id}" rows="1" class="w-full bg-transparent outline-none font-medium text-gray-800 text-sm auto-textarea align-middle resize-none overflow-hidden" oninput="app.handleInput('${task.id}', 'description', this.value, this)">${task.description}</textarea>
+                            <textarea id="desc-${task.id}" rows="1" class="w-full bg-transparent outline-none font-medium text-gray-800 dark:text-slate-200 text-sm auto-textarea align-middle resize-none overflow-hidden" oninput="app.handleInput('${task.id}', 'description', this.value, this)">${task.description}</textarea>
                         </td>
-                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value, this)"></td>
-                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs font-mono" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value, this)"></td>
-                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs font-semibold text-blue-600" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value, this)"></td>
+                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 dark:text-slate-400 w-full cursor-pointer text-xs font-mono" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value, this)"></td>
+                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 dark:text-slate-400 w-full cursor-pointer text-xs font-mono" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value, this)"></td>
+                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs font-semibold text-blue-600 dark:text-blue-400" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value, this)"></td>
                         <td class="px-2 align-middle pic-cell relative"></td>
                         <td class="px-2 align-middle">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
+                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent dark:border-slate-600 focus:border-gray-300 dark:focus:border-slate-500 cursor-pointer text-gray-600 dark:text-slate-400" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
                                 ${state.config.statusMap.map(s => `<option value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
                         </td>
                         <td class="px-2 align-middle text-center">
-                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-slate-700" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     `;
                     const picCell = tr.querySelector('.pic-cell');
@@ -549,24 +601,25 @@
             updatePicDisplay: (el, task) => {
                 el.innerHTML = '';
                 if (!task.pics || task.pics.length === 0) {
-                    el.innerHTML = `<span class="text-gray-300 italic text-[10px]">Select</span>`;
+                    el.innerHTML = `<span class="text-gray-300 dark:text-slate-500 italic text-[10px]">Select</span>`;
                 } else {
                     task.pics.forEach(abbr => {
                         if (abbr === 'ALL') {
                             const tag = document.createElement('span');
-                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm";
-                            tag.style.color = '#000000';
-                            tag.style.backgroundColor = '#e2e8f0';
-                            tag.style.border = `1px solid #cbd5e1`;
+                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm border";
+                            tag.style.color = state.darkMode ? '#e2e8f0' : '#000000';
+                            tag.style.backgroundColor = state.darkMode ? '#334155' : '#e2e8f0';
+                            tag.style.borderColor = state.darkMode ? '#475569' : '#cbd5e1';
                             tag.innerText = 'ALL';
                             el.appendChild(tag);
                         } else {
                             const conf = state.config.picMap.find(p => p.abbr === abbr) || { color: '#000' };
                             const tag = document.createElement('span');
-                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm";
+                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm border";
                             tag.style.color = conf.color;
-                            tag.style.backgroundColor = `${conf.color}15`;
-                            tag.style.border = `1px solid ${conf.color}30`;
+                            // Ensure background is visible in dark mode by using opacity
+                            tag.style.backgroundColor = `${conf.color}20`; 
+                            tag.style.borderColor = `${conf.color}40`;
                             tag.innerText = abbr;
                             el.appendChild(tag);
                         }
@@ -593,18 +646,18 @@
 
                 const menu = document.createElement('div');
                 menu.id = 'active-dropdown'; // Global ID for the body-attached dropdown
-                menu.className = "fixed bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-[9999] w-48 font-inter";
+                menu.className = "fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-xl rounded-lg p-2 z-[9999] w-48 font-inter";
                 menu.style.left = `${rect.left}px`;
                 menu.style.top = `${rect.bottom + 5}px`;
                 
                 menu.onclick = (ev) => ev.stopPropagation();
                 
-                menu.innerHTML = `<div class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wider px-2">Assign People</div>`;
+                menu.innerHTML = `<div class="text-[10px] text-gray-400 dark:text-slate-500 font-bold mb-2 uppercase tracking-wider px-2">Assign People</div>`;
                 
                 // Helper to create options
                 const createOption = (abbr, name, color, isSelected) => {
                     const item = document.createElement('div');
-                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`;
+                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-blue-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
                     item.onclick = () => {
                         if (task.pics.includes(abbr)) {
                             task.pics = task.pics.filter(x => x !== abbr);
@@ -615,9 +668,7 @@
                         const trigger = container.querySelector('.flex');
                         App.updatePicDisplay(trigger, task);
                         
-                        // Close dropdown by recursively calling (toggling off logic not hit because id matches)
-                        // Actually, for multi-select, we want to keep it open.
-                        // Best way to refresh content is to just re-open it.
+                        // Re-open to refresh state
                         state.activeDropdown = null; 
                         App.openPicDropdown(e, task);
                         
@@ -626,7 +677,7 @@
                     };
                     
                     item.innerHTML = `
-                        <div class="check-box w-4 h-4 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}">
+                        <div class="check-box w-4 h-4 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-slate-600'}">
                             ${isSelected ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}
                         </div>
                         <div class="flex-1 flex items-center gap-2">
@@ -638,7 +689,7 @@
 
                 // Option: ALL
                 const isAll = task.pics.includes('ALL');
-                menu.appendChild(createOption('ALL', 'All Roles', '#000000', isAll));
+                menu.appendChild(createOption('ALL', 'All Roles', state.darkMode ? '#e2e8f0' : '#000000', isAll));
 
                 // Options: Configured PICs
                 state.config.picMap.forEach(p => {
@@ -677,7 +728,7 @@
 
                 timelineDays.forEach(date => {
                     const div = document.createElement('div');
-                    div.className = "flex-shrink-0 border-r border-gray-200/50 flex flex-col items-center justify-center text-[10px] text-gray-500 select-none";
+                    div.className = "flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col items-center justify-center text-[10px] text-gray-500 dark:text-slate-400 select-none";
                     div.style.width = `${state.zoom}px`;
                     div.innerHTML = `<span class="font-bold">${date.getDate()}</span><span>${date.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>`;
                     header.appendChild(div);
@@ -694,7 +745,7 @@
                     const rowHeight = tableRow ? tableRow.getBoundingClientRect().height : 52;
 
                     const row = document.createElement('div');
-                    row.className = "relative w-full border-b border-dashed border-gray-100 flex items-center group hover:bg-white/50";
+                    row.className = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50";
                     row.style.height = `${rowHeight}px`; // Dynamic height
 
                     const bar = document.createElement('div');
@@ -730,22 +781,22 @@
                 c.innerHTML = '';
                 
                 const c1 = document.createElement('div');
-                c1.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Hierarchy Colors</h4>`;
+                c1.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Hierarchy Colors</h4>`;
                 const levels = ["Activity Phase", "Major Activity", "Minor Activity", "Sub-Activity"];
                 levels.forEach((name, i) => {
                     const color = getThemeColor(state.config.themeColor, i);
-                    c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${color}"></div><span class="text-sm text-gray-600">${name}</span></div>`;
+                    c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${color}"></div><span class="text-sm text-gray-600 dark:text-slate-300">${name}</span></div>`;
                 });
                 c.appendChild(c1);
                 
                 const c2 = document.createElement('div');
-                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Status</h4><div class="space-y-2"><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600">Completed</span></div><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-700">Dashed</div><span class="text-sm text-gray-600">Ongoing</span></div></div>`;
+                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Status</h4><div class="space-y-2"><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600 dark:text-slate-300">Completed</span></div><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 dark:bg-slate-700 border-2 border-dashed border-gray-400 dark:border-slate-500 flex items-center justify-center text-[8px] text-gray-700 dark:text-slate-400">Dashed</div><span class="text-sm text-gray-600 dark:text-slate-300">Ongoing</span></div></div>`;
                 c.appendChild(c2);
 
                 const c3 = document.createElement('div');
-                c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">PIC</h4><div class="grid grid-cols-2 gap-2"></div>`;
+                c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">PIC</h4><div class="grid grid-cols-2 gap-2"></div>`;
                 const grid = c3.querySelector('.grid');
-                state.config.picMap.forEach(p => grid.innerHTML += `<div class="flex items-center gap-2"><span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:${p.color}20; color:${p.color}">${p.abbr}</span><span class="text-sm text-gray-600">${p.name}</span></div>`);
+                state.config.picMap.forEach(p => grid.innerHTML += `<div class="flex items-center gap-2"><span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:${p.color}20; color:${p.color}">${p.abbr}</span><span class="text-sm text-gray-600 dark:text-slate-300">${p.name}</span></div>`);
                 c.appendChild(c3);
             },
 
@@ -756,15 +807,15 @@
                 const end = addDays(task.startDate, task.duration - 1);
                 document.getElementById('tooltip-date').innerText = `${formatDate(task.startDate)} - ${formatDate(end)}`;
                 // Position initial
-                tip.style.left = `${e.clientX}px`;
-                tip.style.top = `${e.clientY}px`;
+                tip.style.left = `${e.clientX + 15}px`;
+                tip.style.top = `${e.clientY + 15}px`;
                 tip.classList.remove('hidden');
             },
 
             moveTooltip: (e) => {
                 const tip = document.getElementById('custom-tooltip');
-                tip.style.left = `${e.clientX}px`;
-                tip.style.top = `${e.clientY}px`;
+                tip.style.left = `${e.clientX + 15}px`;
+                tip.style.top = `${e.clientY + 15}px`;
             },
 
             insertTask: (index) => {
@@ -828,7 +879,7 @@
                     const d = new Date();
                     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     document.getElementById('save-status').innerText = `Saved ${dateStr}`;
-                    document.getElementById('save-status').className = "text-[10px] text-gray-400 truncate max-w-[200px] whitespace-nowrap";
+                    document.getElementById('save-status').className = "text-[10px] text-gray-400 dark:text-slate-500 truncate max-w-[200px] whitespace-nowrap";
                     
                 } catch(e) {
                     console.error(e);
@@ -921,43 +972,43 @@
                 c.innerHTML = `
                     <div class="space-y-6">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Chart Title</label>
-                            <input class="w-full border rounded px-3 py-2 text-sm" value="${state.config.title}" oninput="app.updateConfig('title', null, null, this.value)">
+                            <label class="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Chart Title</label>
+                            <input class="w-full border dark:border-slate-600 rounded px-3 py-2 text-sm bg-transparent dark:text-slate-200" value="${state.config.title}" oninput="app.updateConfig('title', null, null, this.value)">
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Theme Base Color (For Activities)</label>
+                            <label class="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Theme Base Color (For Activities)</label>
                             <div class="flex items-center gap-3">
                                 <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" oninput="app.updateConfig('themeColor', null, null, this.value)">
-                                <span class="text-xs text-gray-400">Activity colors are auto-generated gradients of this color.</span>
+                                <span class="text-xs text-gray-400 dark:text-slate-500">Activity colors are auto-generated gradients of this color.</span>
                             </div>
                         </div>
                         
-                        <div class="border-t pt-4">
+                        <div class="border-t border-gray-100 dark:border-slate-700 pt-4">
                             <div class="flex justify-between items-center mb-2">
-                                <label class="block text-xs font-bold text-gray-500">Team Members</label>
-                                <button onclick="app.addConfigItem('pic')" class="text-blue-600 text-xs font-bold hover:underline">+ Add Member</button>
+                                <label class="block text-xs font-bold text-gray-500 dark:text-slate-400">Team Members</label>
+                                <button onclick="app.addConfigItem('pic')" class="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline">+ Add Member</button>
                             </div>
                             ${state.config.picMap.map((p, i) => `
                                 <div class="flex gap-2 mb-2 items-center">
-                                    <input class="w-16 border rounded px-2 py-1 text-sm uppercase" value="${p.abbr}" oninput="app.updateConfig('picMap', ${i}, 'abbr', this.value)">
-                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${p.name}" oninput="app.updateConfig('picMap', ${i}, 'name', this.value)">
+                                    <input class="w-16 border dark:border-slate-600 rounded px-2 py-1 text-sm uppercase bg-transparent dark:text-slate-200" value="${p.abbr}" oninput="app.updateConfig('picMap', ${i}, 'abbr', this.value)">
+                                    <input class="flex-1 border dark:border-slate-600 rounded px-2 py-1 text-sm bg-transparent dark:text-slate-200" value="${p.name}" oninput="app.updateConfig('picMap', ${i}, 'name', this.value)">
                                     <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${p.color}" oninput="app.updateConfig('picMap', ${i}, 'color', this.value)">
-                                    <button onclick="app.removeConfigItem('pic', ${i})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    <button onclick="app.removeConfigItem('pic', ${i})" class="text-gray-400 hover:text-red-500 dark:hover:text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                 </div>
                             `).join('')}
                         </div>
 
-                        <div class="border-t pt-4">
+                        <div class="border-t border-gray-100 dark:border-slate-700 pt-4">
                             <div class="flex justify-between items-center mb-2">
-                                <label class="block text-xs font-bold text-gray-500">Statuses</label>
-                                <button onclick="app.addConfigItem('status')" class="text-blue-600 text-xs font-bold hover:underline">+ Add Status</button>
+                                <label class="block text-xs font-bold text-gray-500 dark:text-slate-400">Statuses</label>
+                                <button onclick="app.addConfigItem('status')" class="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline">+ Add Status</button>
                             </div>
                             ${state.config.statusMap.map((s, i) => `
                                 <div class="flex gap-2 mb-2 items-center">
-                                    <input class="flex-1 border rounded px-2 py-1 text-sm" value="${s.name}" oninput="app.updateConfig('statusMap', ${i}, 'name', this.value)">
+                                    <input class="flex-1 border dark:border-slate-600 rounded px-2 py-1 text-sm bg-transparent dark:text-slate-200" value="${s.name}" oninput="app.updateConfig('statusMap', ${i}, 'name', this.value)">
                                     <input type="color" class="w-8 h-8 rounded border-none cursor-pointer" value="${s.color}" oninput="app.updateConfig('statusMap', ${i}, 'color', this.value)">
-                                    <button onclick="app.removeConfigItem('status', ${i})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    <button onclick="app.removeConfigItem('status', ${i})" class="text-gray-400 hover:text-red-500 dark:hover:text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                 </div>
                             `).join('')}
                         </div>
