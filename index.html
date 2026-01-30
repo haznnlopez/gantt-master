@@ -591,7 +591,7 @@
                 
                 const trigger = document.createElement('div');
                 trigger.className = "flex flex-wrap gap-1 cursor-pointer min-h-[24px] items-center w-full";
-                trigger.onclick = (e) => App.openPicDropdown(e, task);
+                trigger.onclick = (e) => App.openPicDropdown(e, task.id);
                 
                 App.updatePicDisplay(trigger, task);
                 div.appendChild(trigger);
@@ -627,21 +627,25 @@
                 }
             },
 
-            openPicDropdown: (e, task) => {
+            openPicDropdown: (e, taskId) => {
                 e.stopPropagation();
                 
                 // Close any open dropdowns first
                 const existing = document.getElementById('active-dropdown');
                 if(existing) existing.remove();
 
-                if (state.activeDropdown === task.id) {
+                if (state.activeDropdown === taskId) {
                     state.activeDropdown = null;
                     return;
                 }
 
-                state.activeDropdown = task.id;
+                // Look up task by ID to get the freshest data
+                const task = state.tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                state.activeDropdown = taskId;
                 
-                const container = document.getElementById(`pic-container-${task.id}`);
+                const container = document.getElementById(`pic-container-${taskId}`);
                 const rect = container.getBoundingClientRect();
 
                 const menu = document.createElement('div');
@@ -659,6 +663,7 @@
                     const item = document.createElement('div');
                     item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-blue-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
                     item.onclick = () => {
+                        // Modify the live task object in state.tasks
                         if (task.pics.includes(abbr)) {
                             task.pics = task.pics.filter(x => x !== abbr);
                         } else {
@@ -668,9 +673,9 @@
                         const trigger = container.querySelector('.flex');
                         App.updatePicDisplay(trigger, task);
                         
-                        // Re-open to refresh state
+                        // Re-open to refresh state (re-renders the checkboxes)
                         state.activeDropdown = null; 
-                        App.openPicDropdown(e, task);
+                        App.openPicDropdown(e, taskId);
                         
                         App.renderChart();
                         App.autoSave();
