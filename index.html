@@ -58,21 +58,6 @@
         .min-row-height { min-height: 52px; }
         .header-height { height: 50px; }
         
-        /* Avatar Stack */
-        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; flex-direction: row-reverse; }
-        .avatar-stack .avatar { 
-            width: 28px; height: 28px; border-radius: 50%; 
-            border: 2px solid white; margin-left: -8px; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: bold; color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            position: relative;
-            transition: transform 0.2s;
-        }
-        .avatar-stack .avatar:hover { transform: translateY(-2px); z-index: 10; }
-        .avatar-stack .avatar:last-child { margin-left: 0; }
-        .online-dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border: 1px solid white; border-radius: 50%; }
-        
         /* Hover Add Trigger */
         .hover-add-trigger {
             opacity: 0;
@@ -115,16 +100,6 @@
         </div>
         
         <div class="flex items-center gap-4 shrink-0">
-            <!-- Presence / Team Display -->
-            <div class="hidden lg:flex items-center gap-2 mr-2">
-                <div id="active-users" class="avatar-stack pr-2 border-r border-gray-200">
-                    <!-- Live Users injected via JS -->
-                </div>
-                <div id="team-avatars" class="avatar-stack opacity-60">
-                    <!-- Configured Team injected via JS -->
-                </div>
-            </div>
-
             <!-- Zoom Controls -->
             <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
                 <button onclick="app.zoomOut()" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-white rounded transition-colors" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
@@ -254,13 +229,12 @@
         // =================================================================================
         
         let firebaseConfig = {
-            apiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
-            authDomain: "gantt-master.firebaseapp.com",
-            projectId: "gantt-master",
-            storageBucket: "gantt-master.firebasestorage.app",
-            messagingSenderId: "822947741694",
-            appId: "1:822947741694:web:41f0828656259cc0200aaf",
-            measurementId: "G-2KK6BNYHPP"
+            apiKey: "PASTE_YOUR_API_KEY_HERE",
+            authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "PASTE_YOUR_PROJECT_ID",
+            storageBucket: "PASTE_YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "PASTE_YOUR_SENDER_ID",
+            appId: "PASTE_YOUR_APP_ID"
         };
 
         if (typeof __firebase_config !== 'undefined') {
@@ -284,9 +258,6 @@
             console.error("Firebase Init Error:", e);
         }
 
-        const sessionColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-        const sessionId = Math.random().toString(36).substring(2);
-
         const state = {
             user: null,
             chartId: null,
@@ -295,7 +266,6 @@
             showLegend: false,
             activeDropdown: null,
             saveTimer: null,
-            activeUsers: [],
             config: {
                 title: "Project Timeline",
                 subtitle: "GANTTMASTER",
@@ -382,10 +352,11 @@
                 zoomInp.onblur = App.handleZoomSubmit;
                 zoomInp.onkeydown = (e) => { if(e.key === 'Enter') App.handleZoomSubmit(); };
 
+                // Click handler to close body-attached dropdowns
                 document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.pic-dropdown-container') && state.activeDropdown) {
-                        const el = document.getElementById(`dropdown-${state.activeDropdown}`);
-                        if(el) el.remove();
+                    const dropdown = document.getElementById('active-dropdown');
+                    if (dropdown && !dropdown.contains(e.target) && !e.target.closest('.pic-dropdown-container')) {
+                        dropdown.remove();
                         state.activeDropdown = null;
                     }
                 });
@@ -414,49 +385,8 @@
                             App.renderAll();
                         }
                     });
-                    App.initPresence(id);
                 } else {
                     App.renderAll();
-                }
-            },
-
-            initPresence: (chartId) => {
-                const presenceRef = collection(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', chartId, 'presence');
-                const myPresenceRef = doc(presenceRef, sessionId);
-                const updateMyPresence = () => {
-                    setDoc(myPresenceRef, { color: sessionColor, lastSeen: serverTimestamp(), userId: state.user?.uid || 'anon' });
-                };
-                updateMyPresence();
-                setInterval(updateMyPresence, 30000); 
-                onSnapshot(presenceRef, (snapshot) => {
-                    state.activeUsers = [];
-                    const now = new Date();
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const lastSeen = data.lastSeen ? data.lastSeen.toDate() : new Date(0);
-                        if ((now - lastSeen) < 120000) state.activeUsers.push(data);
-                    });
-                    App.renderPresence();
-                });
-            },
-
-            renderPresence: () => {
-                const c = document.getElementById('active-users');
-                if(!c) return;
-                c.innerHTML = '';
-                state.activeUsers.slice(0, 5).forEach(u => {
-                    const d = document.createElement('div');
-                    d.className = 'avatar';
-                    d.style.backgroundColor = u.color;
-                    d.title = "User Online";
-                    d.innerHTML = '<div class="online-dot"></div>';
-                    c.appendChild(d);
-                });
-                if(state.activeUsers.length > 5) {
-                    const more = document.createElement('div');
-                    more.className = 'avatar bg-gray-400';
-                    more.innerText = `+${state.activeUsers.length - 5}`;
-                    c.appendChild(more);
                 }
             },
 
@@ -511,7 +441,6 @@
                 }
                 App.renderChart();
                 App.renderLegend();
-                App.renderTeamAvatars();
             },
 
             renderAll: () => {
@@ -519,22 +448,7 @@
                 App.renderTable();
                 App.renderChart();
                 App.renderLegend();
-                App.renderTeamAvatars();
                 lucide.createIcons();
-            },
-
-            renderTeamAvatars: () => {
-                const c = document.getElementById('team-avatars');
-                if(!c) return;
-                c.innerHTML = '';
-                state.config.picMap.slice(0, 4).forEach(p => {
-                    const d = document.createElement('div');
-                    d.className = 'avatar';
-                    d.style.backgroundColor = p.color;
-                    d.innerText = p.abbr.substring(0, 2);
-                    d.title = p.name;
-                    c.appendChild(d);
-                });
             },
 
             renderTable: () => {
@@ -637,65 +551,102 @@
                     el.innerHTML = `<span class="text-gray-300 italic text-[10px]">Select</span>`;
                 } else {
                     task.pics.forEach(abbr => {
-                        const conf = state.config.picMap.find(p => p.abbr === abbr) || { color: '#000' };
-                        const tag = document.createElement('span');
-                        tag.className = "text-[10px] font-bold px-1 rounded shadow-sm";
-                        tag.style.color = conf.color;
-                        tag.style.backgroundColor = `${conf.color}15`;
-                        tag.style.border = `1px solid ${conf.color}30`;
-                        tag.innerText = abbr;
-                        el.appendChild(tag);
+                        if (abbr === 'ALL') {
+                            const tag = document.createElement('span');
+                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm";
+                            tag.style.color = '#000000';
+                            tag.style.backgroundColor = '#e2e8f0';
+                            tag.style.border = `1px solid #cbd5e1`;
+                            tag.innerText = 'ALL';
+                            el.appendChild(tag);
+                        } else {
+                            const conf = state.config.picMap.find(p => p.abbr === abbr) || { color: '#000' };
+                            const tag = document.createElement('span');
+                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm";
+                            tag.style.color = conf.color;
+                            tag.style.backgroundColor = `${conf.color}15`;
+                            tag.style.border = `1px solid ${conf.color}30`;
+                            tag.innerText = abbr;
+                            el.appendChild(tag);
+                        }
                     });
                 }
             },
 
             openPicDropdown: (e, task) => {
                 e.stopPropagation();
-                if(state.activeDropdown) {
-                    const existing = document.getElementById(`dropdown-${state.activeDropdown}`);
-                    if(existing) existing.remove();
-                }
                 
+                // Close any open dropdowns first
+                const existing = document.getElementById('active-dropdown');
+                if(existing) existing.remove();
+
                 if (state.activeDropdown === task.id) {
                     state.activeDropdown = null;
                     return;
                 }
 
                 state.activeDropdown = task.id;
-                const container = document.getElementById(`pic-container-${task.id}`);
                 
+                const container = document.getElementById(`pic-container-${task.id}`);
+                const rect = container.getBoundingClientRect();
+
                 const menu = document.createElement('div');
-                menu.id = `dropdown-${task.id}`;
-                menu.className = "absolute top-8 left-0 bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-50 w-48 dropdown-enter dropdown-enter-active";
-                menu.onclick = (e) => e.stopPropagation();
+                menu.id = 'active-dropdown'; // Global ID for the body-attached dropdown
+                menu.className = "fixed bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-[9999] w-48 font-inter";
+                menu.style.left = `${rect.left}px`;
+                menu.style.top = `${rect.bottom + 5}px`;
+                
+                menu.onclick = (ev) => ev.stopPropagation();
                 
                 menu.innerHTML = `<div class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wider px-2">Assign People</div>`;
                 
-                state.config.picMap.forEach(p => {
-                    const isSelected = task.pics?.includes(p.abbr);
+                // Helper to create options
+                const createOption = (abbr, name, color, isSelected) => {
                     const item = document.createElement('div');
                     item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`;
                     item.onclick = () => {
-                        if (task.pics.includes(p.abbr)) task.pics = task.pics.filter(x => x !== p.abbr);
-                        else task.pics.push(p.abbr);
+                        if (task.pics.includes(abbr)) {
+                            task.pics = task.pics.filter(x => x !== abbr);
+                        } else {
+                            task.pics.push(abbr);
+                        }
                         
-                        const trigger = container.querySelector('div');
+                        const trigger = container.querySelector('.flex');
                         App.updatePicDisplay(trigger, task);
+                        
+                        // Close dropdown by recursively calling (toggling off logic not hit because id matches)
+                        // Actually, for multi-select, we want to keep it open.
+                        // Best way to refresh content is to just re-open it.
+                        state.activeDropdown = null; 
                         App.openPicDropdown(e, task);
+                        
                         App.renderChart();
                         App.autoSave();
                     };
+                    
                     item.innerHTML = `
-                        <div class="w-3 h-3 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}">
-                            ${isSelected ? '<i data-lucide="check" class="w-2 h-2 text-white"></i>' : ''}
+                        <div class="check-box w-4 h-4 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}">
+                            ${isSelected ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}
                         </div>
                         <div class="flex-1 flex items-center gap-2">
-                            <span class="font-bold" style="color: ${p.color}">${p.abbr}</span>
+                            <span class="font-bold" style="color: ${color}">${abbr}</span>
+                            <span class="text-gray-600 truncate">${name}</span>
                         </div>
                     `;
-                    menu.appendChild(item);
+                    return item;
+                };
+
+                // Option: ALL
+                const isAll = task.pics.includes('ALL');
+                menu.appendChild(createOption('ALL', 'All Roles', '#000000', isAll));
+
+                // Options: Configured PICs
+                state.config.picMap.forEach(p => {
+                    const isSelected = task.pics.includes(p.abbr);
+                    menu.appendChild(createOption(p.abbr, p.name, p.color, isSelected));
                 });
-                container.appendChild(menu);
+
+                document.body.appendChild(menu);
                 lucide.createIcons();
             },
 
