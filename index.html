@@ -631,7 +631,6 @@
                         </div>
                         <div class="flex-1 flex items-center gap-2">
                             <span class="font-bold" style="color: ${color}">${abbr}</span>
-                            <span class="text-gray-600 truncate">${name}</span>
                         </div>
                     `;
                     return item;
@@ -707,6 +706,7 @@
                     bar.style.color = isCompleted ? 'white' : barColor;
                     
                     bar.onmouseenter = (e) => App.showTooltip(e, task);
+                    bar.onmousemove = (e) => App.moveTooltip(e);
                     bar.onmouseleave = () => document.getElementById('custom-tooltip').classList.add('hidden');
                     
                     row.appendChild(bar);
@@ -751,14 +751,20 @@
 
             showTooltip: (e, task) => {
                 const tip = document.getElementById('custom-tooltip');
-                const rect = e.target.getBoundingClientRect();
                 document.getElementById('tooltip-title').innerText = `${task.activityNo} ${task.description}`;
                 document.getElementById('tooltip-status').innerText = task.status;
                 const end = addDays(task.startDate, task.duration - 1);
                 document.getElementById('tooltip-date').innerText = `${formatDate(task.startDate)} - ${formatDate(end)}`;
-                tip.style.left = `${rect.left + (rect.width/2)}px`;
-                tip.style.top = `${rect.top}px`;
+                // Position initial
+                tip.style.left = `${e.clientX}px`;
+                tip.style.top = `${e.clientY}px`;
                 tip.classList.remove('hidden');
+            },
+
+            moveTooltip: (e) => {
+                const tip = document.getElementById('custom-tooltip');
+                tip.style.left = `${e.clientX}px`;
+                tip.style.top = `${e.clientY}px`;
             },
 
             insertTask: (index) => {
@@ -975,4 +981,3 @@
     </script>
 </body>
 </html>
-
