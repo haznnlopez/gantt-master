@@ -292,7 +292,7 @@
         // =================================================================================
         
         let firebaseConfig = {
-            apiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
+            aapiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
             authDomain: "gantt-master.firebaseapp.com",
             projectId: "gantt-master",
             storageBucket: "gantt-master.firebasestorage.app",
@@ -357,9 +357,10 @@
         };
 
         function generateId() { return Math.random().toString(36).substr(2, 9); }
-        // Display Format - Changed to DD/MM/YY as requested
+        // Display Format - DD/MM/YY
         function formatDateDisplay(isoStr) { 
             if(!isoStr) return ''; 
+            if(isoStr.includes('/')) return isoStr; // Already formatted
             const [y, m, d] = isoStr.split('-');
             return `${d}/${m}/${y.slice(2)}`;
         }
@@ -519,8 +520,8 @@
                                 tables.forEach(t => t.style.minWidth = `${state.config.paneWidth}px`);
                             }
 
-                            // Calculate Parents on load
-                            App.recalculateParents();
+                            // Identify Parents on load for styling
+                            App.identifyParents();
                             
                             App.updateDOMFromState(data.lastUpdated, data.authorId);
                         } else {
@@ -535,13 +536,9 @@
                 }
             },
 
-            // --- Auto-Calculate Parent Dates ---
-            recalculateParents: () => {
-                // Determine Hierarchy
-                // Reset parent status temporarily
+            // --- Identify Parents for Styling (Visual Only) ---
+            identifyParents: () => {
                 state.tasks.forEach(t => t.isParent = false);
-
-                // Identify parents
                 state.tasks.forEach(parent => {
                     const children = state.tasks.filter(child => 
                         child.id !== parent.id && 
@@ -549,23 +546,6 @@
                     );
                     if(children.length > 0) {
                         parent.isParent = true;
-                        // Calculate dates
-                        let minStart = null;
-                        let maxEnd = null;
-                        
-                        children.forEach(c => {
-                            const cStart = new Date(c.startDate);
-                            const cEnd = new Date(addDays(c.startDate, c.duration - 1));
-                            
-                            if(!minStart || cStart < minStart) minStart = cStart;
-                            if(!maxEnd || cEnd > maxEnd) maxEnd = cEnd;
-                        });
-                        
-                        if(minStart && maxEnd) {
-                            parent.startDate = minStart.toISOString().split('T')[0];
-                            const diff = getDaysDiff(parent.startDate, maxEnd.toISOString().split('T')[0]);
-                            parent.duration = diff >= 0 ? diff + 1 : 1;
-                        }
                     }
                 });
             },
@@ -613,25 +593,20 @@
                             descEl.style.height = descEl.scrollHeight + 'px';
                         }
 
-                        // Update Date Inputs
+                        // Update Date Inputs (Fully Editable)
                         const startEl = document.getElementById(`start-${task.id}`);
                         const endEl = document.getElementById(`end-${task.id}`);
                         const durEl = document.getElementById(`dur-${task.id}`);
                         
-                        // Parent fields are no longer disabled, but we update values
-                        if(startEl) {
-                             if(document.activeElement !== startEl) {
-                                 if(startEl.type === 'text') startEl.value = formatDateDisplay(task.startDate);
-                                 else startEl.value = task.startDate;
-                             }
+                        if(startEl && document.activeElement !== startEl) {
+                             if(startEl.type === 'text') startEl.value = formatDateDisplay(task.startDate);
+                             else startEl.value = task.startDate;
                         }
 
                         const endDateVal = addDays(task.startDate, task.duration - 1);
-                        if(endEl) {
-                            if(document.activeElement !== endEl) {
-                                if(endEl.type === 'text') endEl.value = formatDateDisplay(endDateVal);
-                                else endEl.value = endDateVal;
-                            }
+                        if(endEl && document.activeElement !== endEl) {
+                            if(endEl.type === 'text') endEl.value = formatDateDisplay(endDateVal);
+                            else endEl.value = endDateVal;
                         }
 
                         setVal(`dur-${task.id}`, task.duration);
@@ -651,7 +626,7 @@
             },
 
             renderAll: () => {
-                App.recalculateParents();
+                App.identifyParents();
                 App.renderTable();
                 App.renderChart();
                 App.renderLegend();
@@ -672,8 +647,7 @@
                     tr.className = `border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 group transition-colors min-row-height ${task.isParent ? 'parent-row' : ''}`; 
                     
                     const endDateVal = addDays(task.startDate, task.duration - 1);
-                    // Parent inputs are NO LONGER disabled
-                    
+
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell">
                             <input id="act-${task.id}" type="text" class="w-full bg-transparent outline-none font-bold text-gray-500 dark:text-slate-400 text-center text-xs" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)">
@@ -688,14 +662,14 @@
                             <input id="start-${task.id}" type="text" class="bg-transparent outline-none text-gray-600 dark:text-slate-400 w-full cursor-pointer text-xs font-mono" 
                                 value="${formatDateDisplay(task.startDate)}" 
                                 onfocus="(this.type='date');this.value='${task.startDate}'" 
-                                onblur="(this.type='text');this.value=app.formatDateDisplay(this.value); app.handleInput('${task.id}', 'startDate', this.value)"
+                                onblur="(this.type='text');this.value=app.formatDateDisplay(this.value);"
                                 onchange="app.handleInput('${task.id}', 'startDate', this.value)">
                         </td>
                         <td class="px-2 align-middle">
                              <input id="end-${task.id}" type="text" class="bg-transparent outline-none text-gray-600 dark:text-slate-400 w-full cursor-pointer text-xs font-mono" 
                                 value="${formatDateDisplay(endDateVal)}" 
                                 onfocus="(this.type='date');this.value='${endDateVal}'" 
-                                onblur="(this.type='text');this.value=app.formatDateDisplay(this.value); app.handleInput('${task.id}', 'endDate', this.value)"
+                                onblur="(this.type='text');this.value=app.formatDateDisplay(this.value);"
                                 onchange="app.handleInput('${task.id}', 'endDate', this.value)">
                         </td>
                         <td class="px-2 align-middle text-center">
@@ -745,18 +719,15 @@
                     element.style.height = element.scrollHeight + 'px';
                     task.description = value;
                 } else if (field === 'duration') {
-                    // Logic allows manual edit of parent duration, will likely be overwritten next recalc
                     const dur = parseInt(value) || 1;
                     task.duration = dur;
                     const endInput = document.getElementById(`end-${id}`);
                     if(endInput && document.activeElement !== endInput) endInput.value = formatDateDisplay(addDays(task.startDate, dur - 1));
                 } else if (field === 'startDate') {
-                    // Logic allows manual edit of parent start
                     task.startDate = value;
                     const endInput = document.getElementById(`end-${id}`);
                     if(endInput && document.activeElement !== endInput) endInput.value = formatDateDisplay(addDays(value, task.duration - 1));
                 } else if (field === 'endDate') {
-                    // Logic allows manual edit of parent end
                     const diff = getDaysDiff(task.startDate, value);
                     const newDur = diff >= 0 ? diff + 1 : 1;
                     task.duration = newDur;
@@ -764,44 +735,18 @@
                     if(durInput) durInput.value = newDur;
                 } else if (field === 'activityNo') {
                     task.activityNo = value;
-                    App.recalculateParents();
-                    App.renderTable();
+                    // Update visual hierarchy
+                    App.identifyParents();
+                    // Update specific row classes without re-rendering everything if possible
+                    state.tasks.forEach(t => {
+                        const tr = document.getElementById(`tr-${t.id}`);
+                        if (tr) {
+                             if(t.isParent) tr.classList.add('parent-row');
+                             else tr.classList.remove('parent-row');
+                        }
+                    });
                 } else {
                     task[field] = value;
-                }
-
-                // If dates changed AND task is NOT a parent, recalc parents.
-                // If task IS a parent, do not recalc immediately to allow manual edit to persist until next child update.
-                if((field === 'startDate' || field === 'duration' || field === 'endDate') && !task.isParent) {
-                    App.recalculateParents();
-                    // Updating parent cells via re-render is simplest to ensure consistency
-                    // But we want to avoid re-rendering the current row if possible.
-                    // For simplicity and correctness with parents, re-render might be needed or targeted updates.
-                    // App.renderTable(); // This might kill focus.
-                    // Instead, let's update specific parent DOM elements if found.
-                    // Actually, recalculateParents updates state.tasks.
-                    // We can just call renderChart and let autoSave handle persistence.
-                    // But we want to see parent text update in table.
-                    // Let's rely on updateDOMFromState pattern or similar if we want to update other rows.
-                    // Or just let it update on next load? No.
-                    // Let's just update the chart and save. If user wants to see parent update, they might need refresh or we need targeted DOM updates.
-                    // Let's add targeted parent DOM update loop here.
-                     state.tasks.forEach(t => {
-                         if(t.isParent) {
-                             const pStart = document.getElementById(`start-${t.id}`);
-                             const pEnd = document.getElementById(`end-${t.id}`);
-                             const pDur = document.getElementById(`dur-${t.id}`);
-                             if(pStart && document.activeElement !== pStart) {
-                                 pStart.value = formatDateDisplay(t.startDate);
-                             }
-                             if(pEnd && document.activeElement !== pEnd) {
-                                 pEnd.value = formatDateDisplay(addDays(t.startDate, t.duration - 1));
-                             }
-                             if(pDur && document.activeElement !== pDur) {
-                                 pDur.value = t.duration;
-                             }
-                         }
-                     });
                 }
 
                 App.renderChart();
@@ -1274,4 +1219,3 @@
     </script>
 </body>
 </html>
-
