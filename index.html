@@ -23,8 +23,20 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Hide Date Picker Icon */
-        input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
+        /* Hide Date Picker Icon - use click to activate */
+        input[type="date"] { position: relative; }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background: transparent;
+            bottom: 0;
+            color: transparent;
+            cursor: pointer;
+            height: auto;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: auto;
+        }
         
         /* Animation */
         @keyframes fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -43,9 +55,12 @@
             border-top: 6px solid rgba(17, 24, 39, 0.95);
         }
         
-        /* Ensure rows align perfectly */
         .row-height { height: 52px; }
         .header-height { height: 50px; }
+        
+        /* Dropdown transition */
+        .dropdown-enter { transform: scale(0.95); opacity: 0; }
+        .dropdown-enter-active { transform: scale(1); opacity: 1; transition: all 0.1s ease-out; }
     </style>
 </head>
 <body class="bg-white text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -58,7 +73,10 @@
             </div>
             <div>
                 <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full" value="Project Timeline 2024">
-                <input id="app-subtitle" type="text" class="text-[10px] text-gray-400 uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-full" value="GANTTMASTER">
+                <div class="flex items-center gap-2">
+                    <input id="app-subtitle" type="text" class="text-[10px] text-gray-400 uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 focus:bg-gray-50 rounded px-1 transition-colors w-24" value="GANTTMASTER">
+                    <span id="save-status" class="text-[10px] text-green-600 font-medium opacity-0 transition-opacity">Saved</span>
+                </div>
             </div>
         </div>
         
@@ -74,26 +92,26 @@
             
             <button onclick="app.toggleSettings()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"><i data-lucide="settings" class="w-5 h-5"></i></button>
             <button onclick="app.saveChart()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"><i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span></button>
-            <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share Link</span></button>
+            <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share</span></button>
         </div>
     </nav>
 
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden relative">
         
-        <!-- Table Pane -->
-        <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 bg-white h-full custom-scrollbar flex-none z-10" style="width: 550px;">
-            <table class="w-full text-sm text-left table-fixed min-w-[550px]">
+        <!-- Table Pane (Width increased to 650px) -->
+        <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 bg-white h-full custom-scrollbar flex-none z-10" style="width: 650px;">
+            <table class="w-full text-sm text-left table-fixed min-w-[650px]">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-20 header-height">
                     <tr>
-                        <th class="px-2 align-middle w-10">No.</th>
-                        <th class="px-2 align-middle w-48">Activity</th>
-                        <th class="px-2 align-middle w-24">Start</th>
-                        <th class="px-2 align-middle w-24">End</th>
+                        <th class="px-2 align-middle w-10 text-center">#</th>
+                        <th class="px-2 align-middle w-56">Activity</th>
+                        <th class="px-2 align-middle w-28">Start</th>
+                        <th class="px-2 align-middle w-28">End</th>
                         <th class="px-2 align-middle w-12 text-center">Days</th>
                         <th class="px-2 align-middle w-24">PIC</th>
-                        <th class="px-2 align-middle w-24">Status</th>
-                        <th class="px-2 align-middle w-8"></th>
+                        <th class="px-2 align-middle w-28">Status</th>
+                        <th class="px-2 align-middle w-10"></th>
                     </tr>
                 </thead>
                 <tbody id="task-table-body">
@@ -186,7 +204,7 @@
         // =================================================================================
         
         let firebaseConfig = {
-           apiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
+            apiKey: "AIzaSyBaZJ49zEo4GoWR3LoyDba5J3wkPkaOfWs",
             authDomain: "gantt-master.firebaseapp.com",
             projectId: "gantt-master",
             storageBucket: "gantt-master.firebasestorage.app",
@@ -195,7 +213,6 @@
             measurementId: "G-2KK6BNYHPP"
         };
 
-        // This block auto-fills keys ONLY when previewing in this chat environment.
         if (typeof __firebase_config !== 'undefined') {
             try {
                 firebaseConfig = JSON.parse(__firebase_config);
@@ -208,19 +225,17 @@
         let appInstance, authInstance, dbInstance;
         
         try {
-            // Only initialize if config is valid (simplistic check)
             if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY_HERE") {
                 appInstance = initializeApp(firebaseConfig);
                 authInstance = getAuth(appInstance);
                 dbInstance = getFirestore(appInstance);
             } else {
-                console.warn("Firebase not configured. Saving/Sharing will be disabled.");
+                console.warn("Firebase not configured.");
             }
         } catch(e) {
-            console.error("Firebase Initialization Error:", e);
+            console.error("Firebase Init Error:", e);
         }
 
-        // --- State ---
         const state = {
             user: null,
             chartId: null,
@@ -228,6 +243,7 @@
             zoom: 40,
             showLegend: false,
             activeDropdown: null,
+            saveTimer: null,
             config: {
                 title: "Project Timeline 2024",
                 subtitle: "GanttMaster",
@@ -251,117 +267,75 @@
             },
             tasks: [
                 { id: '1', activityNo: '1.0', description: 'Project Kickoff', startDate: new Date().toISOString().split('T')[0], duration: 2, pics: ['TL'], status: 'Completed', type: 'Major Activity' },
-                { id: '2', activityNo: '1.1', description: 'Requirements Gathering', startDate: addDays(new Date(), 2), duration: 5, pics: ['TL', 'DEV'], status: 'In Progress', type: 'Minor Activity' },
-                { id: '3', activityNo: '2.0', description: 'Design System', startDate: addDays(new Date(), 5), duration: 7, pics: ['DES'], status: 'Pending', type: 'Major Activity' },
             ]
         };
 
-        // --- Helpers ---
         function generateId() { return Math.random().toString(36).substr(2, 9); }
-        function formatDate(str) { 
-            if(!str) return ''; 
-            const d = new Date(str); 
-            return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); 
-        }
-        function addDays(str, days) {
-            const d = new Date(str);
-            d.setDate(d.getDate() + parseInt(days));
-            return d.toISOString().split('T')[0];
-        }
-        function getDaysDiff(start, end) {
-            const s = new Date(start);
-            const e = new Date(end);
-            return Math.round((e - s) / (1000 * 60 * 60 * 24));
-        }
-
-        // --- Logic & Rendering ---
+        function formatDate(str) { if(!str) return ''; const d = new Date(str); return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); }
+        function addDays(str, days) { const d = new Date(str); d.setDate(d.getDate() + parseInt(days)); return d.toISOString().split('T')[0]; }
+        function getDaysDiff(start, end) { return Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); }
 
         const App = {
             init: async () => {
-                // Auth
                 if (authInstance) {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(authInstance, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(authInstance);
-                    }
-                    onAuthStateChanged(authInstance, (u) => {
-                        state.user = u;
-                        App.loadData();
-                    });
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(authInstance, __initial_auth_token);
+                    else await signInAnonymously(authInstance);
+                    onAuthStateChanged(authInstance, (u) => { state.user = u; App.loadData(); });
                 } else {
-                    // Offline/Unconfigured mode
                     App.renderAll();
                 }
 
                 // Sync Scrolling
-                const tablePane = document.getElementById('table-pane');
-                const chartPane = document.getElementById('chart-pane');
-                let isSyncingLeft = false;
-                let isSyncingRight = false;
+                const tp = document.getElementById('table-pane'), cp = document.getElementById('chart-pane');
+                let syncL = false, syncR = false;
+                tp.onscroll = function() { if (!syncL) { syncR = true; cp.scrollTop = this.scrollTop; } syncL = false; };
+                cp.onscroll = function() { if (!syncR) { syncL = true; tp.scrollTop = this.scrollTop; } syncR = false; };
 
-                tablePane.onscroll = function() {
-                    if (!isSyncingLeft) {
-                        isSyncingRight = true;
-                        chartPane.scrollTop = this.scrollTop;
-                    }
-                    isSyncingLeft = false;
-                };
-
-                chartPane.onscroll = function() {
-                    if (!isSyncingRight) {
-                        isSyncingLeft = true;
-                        tablePane.scrollTop = this.scrollTop;
-                    }
-                    isSyncingRight = false;
-                };
-
-                // Title Inputs
-                document.getElementById('app-title').onchange = (e) => { state.config.title = e.target.value; };
-                document.getElementById('app-subtitle').onchange = (e) => { state.config.subtitle = e.target.value; };
+                // Event Listeners for Title
+                document.getElementById('app-title').oninput = (e) => { state.config.title = e.target.value; App.autoSave(); };
+                document.getElementById('app-subtitle').oninput = (e) => { state.config.subtitle = e.target.value; App.autoSave(); };
                 
-                // Zoom Input
-                const zoomInp = document.getElementById('zoom-input');
-                zoomInp.onblur = App.handleZoomSubmit;
-                zoomInp.onkeydown = (e) => { if(e.key === 'Enter') App.handleZoomSubmit(); };
-                
-                // Global Click to close dropdowns
+                // Click Outside
                 document.addEventListener('click', (e) => {
-                    if(!e.target.closest('.pic-dropdown-container')) {
+                    if (!e.target.closest('.pic-dropdown-container') && state.activeDropdown) {
+                        const el = document.getElementById(`dropdown-${state.activeDropdown}`);
+                        if(el) el.remove();
                         state.activeDropdown = null;
-                        App.renderTable(); // Re-render to close dropdown
                     }
                 });
-
-                App.renderAll();
             },
 
             loadData: () => {
                 const params = new URLSearchParams(window.location.search);
                 const id = params.get('id');
-                if (id && dbInstance && state.user) {
+                if (id && dbInstance) {
                     state.chartId = id;
-                    const docRef = doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', id);
-                    onSnapshot(docRef, (docSnap) => {
+                    onSnapshot(doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', id), (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
-                            // Migration logic
-                            const migratedTasks = data.tasks.map(t => ({
-                                ...t,
-                                pics: Array.isArray(t.pics) ? t.pics : (t.pic ? [t.pic] : [])
-                            }));
-                            state.config = { ...DEFAULT_CONFIG, ...data.config };
-                            state.tasks = migratedTasks;
+                            // Only full re-render if we aren't actively editing (focus check could be here, but simpler to just check if tasks length changed or drastic config change)
+                            const isEditing = document.activeElement.tagName === 'INPUT';
                             
-                            // Update Title Inputs
+                            state.config = { ...DEFAULT_CONFIG, ...data.config };
+                            state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
+                            
                             document.getElementById('app-title').value = state.config.title;
                             document.getElementById('app-subtitle').value = state.config.subtitle;
                             
-                            App.renderAll();
-                        } else {
-                            App.showToast("Chart not found. Created new.", "error");
+                            // If user is editing, we skip full table render to prevent focus loss, only update chart
+                            if (!isEditing) {
+                                App.renderTable();
+                            } else {
+                                // If editing, we trust local state for inputs, but update chart visuals
+                                App.renderChart();
+                            }
+                            // Always update chart and legend
+                            App.renderChart();
+                            App.renderLegend();
                         }
                     });
+                } else {
+                    App.renderAll();
                 }
             },
 
@@ -373,7 +347,7 @@
                 lucide.createIcons();
             },
 
-            // --- Table Rendering ---
+            // --- Table Rendering (Only called on structure change) ---
             renderTable: () => {
                 const tbody = document.getElementById('task-table-body');
                 tbody.innerHTML = '';
@@ -381,61 +355,92 @@
                 state.tasks.forEach(task => {
                     const tr = document.createElement('tr');
                     tr.className = "border-b border-gray-100 hover:bg-gray-50 group transition-colors row-height";
-                    
-                    // Cells
                     tr.innerHTML = `
-                        <td class="px-2 align-middle"><input type="text" class="w-full bg-transparent outline-none font-medium text-gray-600 focus:text-blue-600 text-xs" value="${task.activityNo}" onchange="app.updateTask('${task.id}', 'activityNo', this.value)"></td>
+                        <td class="px-2 align-middle text-center"><input id="act-${task.id}" type="text" class="w-full bg-transparent outline-none font-bold text-gray-500 text-center text-xs" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value)"></td>
                         <td class="px-2 align-middle">
                             <div class="flex flex-col justify-center">
-                                <input type="text" class="w-full bg-transparent outline-none font-medium text-gray-800 focus:border-b focus:border-blue-500 truncate" value="${task.description}" onchange="app.updateTask('${task.id}', 'description', this.value)">
-                                <select class="text-[10px] text-gray-400 bg-transparent outline-none cursor-pointer mt-0.5" onchange="app.updateTask('${task.id}', 'type', this.value)">
+                                <input id="desc-${task.id}" type="text" class="w-full bg-transparent outline-none font-medium text-gray-800 focus:border-b focus:border-blue-500 truncate" value="${task.description}" oninput="app.handleInput('${task.id}', 'description', this.value)">
+                                <select class="text-[10px] text-gray-400 bg-transparent outline-none cursor-pointer mt-0.5" onchange="app.handleInput('${task.id}', 'type', this.value)">
                                     ${state.config.activityTypes.map(t => `<option value="${t.name}" ${task.type === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
                                 </select>
                             </div>
                         </td>
-                        <td class="px-2 align-middle"><input type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs" value="${task.startDate}" onchange="app.updateTask('${task.id}', 'startDate', this.value)"></td>
-                        <td class="px-2 align-middle"><input type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs" value="${addDays(task.startDate, task.duration - 1)}" onchange="app.updateTask('${task.id}', 'endDate', this.value)"></td>
-                        <td class="px-2 align-middle text-center"><input type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs" value="${task.duration}" onchange="app.updateTask('${task.id}', 'duration', this.value)"></td>
-                        <td class="px-2 align-middle pic-cell"></td>
+                        <td class="px-2 align-middle"><input id="start-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs" value="${task.startDate}" oninput="app.handleInput('${task.id}', 'startDate', this.value)"></td>
+                        <td class="px-2 align-middle"><input id="end-${task.id}" type="date" class="bg-transparent outline-none text-gray-600 w-full cursor-pointer text-xs" value="${addDays(task.startDate, task.duration - 1)}" oninput="app.handleInput('${task.id}', 'endDate', this.value)"></td>
+                        <td class="px-2 align-middle text-center"><input id="dur-${task.id}" type="number" min="1" class="w-full bg-transparent outline-none text-center text-xs" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value)"></td>
+                        <td class="px-2 align-middle pic-cell relative"></td>
                         <td class="px-2 align-middle">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer" onchange="app.updateTask('${task.id}', 'status', this.value)">
+                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border border-transparent focus:border-gray-300 cursor-pointer" onchange="app.handleInput('${task.id}', 'status', this.value)">
                                 ${state.config.statusMap.map(s => `<option value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
                         </td>
-                        <td class="px-2 align-middle text-right">
-                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                        <td class="px-2 align-middle text-center">
+                             <button onclick="app.removeTask('${task.id}')" class="text-gray-300 hover:text-red-500 transition-colors" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     `;
-                    
-                    // Inject Custom Multi-Select logic
                     const picCell = tr.querySelector('.pic-cell');
-                    picCell.appendChild(App.createPicDropdown(task));
-
+                    picCell.appendChild(App.renderPicTrigger(task));
                     tbody.appendChild(tr);
                 });
 
-                // Add Task Row
                 const addRow = document.createElement('tr');
                 addRow.className = "row-height";
                 addRow.innerHTML = `<td colspan="8" class="px-2 py-2 align-middle"><button onclick="app.addTask()" class="flex items-center gap-2 text-blue-600 text-sm font-medium hover:bg-blue-50 px-3 py-2 rounded-lg w-full transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> Add Activity</button></td>`;
                 tbody.appendChild(addRow);
+                lucide.createIcons();
             },
 
-            createPicDropdown: (task) => {
-                const container = document.createElement('div');
-                container.className = "relative pic-dropdown-container";
+            // --- Optimized Input Handling (No Re-render) ---
+            handleInput: (id, field, value) => {
+                const task = state.tasks.find(t => t.id === id);
+                if (!task) return;
+
+                if (field === 'duration') {
+                    const dur = parseInt(value) || 1;
+                    task.duration = dur;
+                    // Update End Date Input Manually
+                    const endInput = document.getElementById(`end-${id}`);
+                    if(endInput) endInput.value = addDays(task.startDate, dur - 1);
+                } else if (field === 'startDate') {
+                    task.startDate = value;
+                    // Update End Date Input Manually
+                    const endInput = document.getElementById(`end-${id}`);
+                    if(endInput) endInput.value = addDays(value, task.duration - 1);
+                } else if (field === 'endDate') {
+                    const diff = getDaysDiff(task.startDate, value);
+                    const newDur = diff >= 0 ? diff + 1 : 1;
+                    task.duration = newDur;
+                    // Update Duration Input Manually
+                    const durInput = document.getElementById(`dur-${id}`);
+                    if(durInput) durInput.value = newDur;
+                } else {
+                    task[field] = value;
+                }
+
+                // Only re-render the chart visuals, NOT the table
+                App.renderChart();
+                App.autoSave();
+            },
+
+            // --- PIC Logic ---
+            renderPicTrigger: (task) => {
+                const div = document.createElement('div');
+                div.className = "pic-dropdown-container w-full h-full flex items-center";
+                div.id = `pic-container-${task.id}`;
                 
                 const trigger = document.createElement('div');
-                trigger.className = "flex flex-wrap gap-1 cursor-pointer min-h-[24px] items-center";
-                trigger.onclick = (e) => {
-                    e.stopPropagation();
-                    state.activeDropdown = state.activeDropdown === task.id ? null : task.id;
-                    App.renderTable(); // Re-render to toggle
-                    lucide.createIcons();
-                };
+                trigger.className = "flex flex-wrap gap-1 cursor-pointer min-h-[24px] items-center w-full";
+                trigger.onclick = (e) => App.openPicDropdown(e, task);
+                
+                App.updatePicDisplay(trigger, task);
+                div.appendChild(trigger);
+                return div;
+            },
 
+            updatePicDisplay: (el, task) => {
+                el.innerHTML = '';
                 if (!task.pics || task.pics.length === 0) {
-                    trigger.innerHTML = `<span class="text-gray-300 italic text-[10px]">Select</span>`;
+                    el.innerHTML = `<span class="text-gray-300 italic text-[10px]">Select</span>`;
                 } else {
                     task.pics.forEach(abbr => {
                         const conf = state.config.picMap.find(p => p.abbr === abbr) || { color: '#000' };
@@ -444,41 +449,70 @@
                         tag.style.color = conf.color;
                         tag.style.backgroundColor = `${conf.color}20`;
                         tag.innerText = abbr;
-                        trigger.appendChild(tag);
+                        el.appendChild(tag);
                     });
                 }
-                container.appendChild(trigger);
-
-                if (state.activeDropdown === task.id) {
-                    const menu = document.createElement('div');
-                    menu.className = "absolute top-full left-0 mt-1 bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-50 w-48 animate-fade-in";
-                    menu.onclick = (e) => e.stopPropagation(); // Prevent closing when clicking inside
-                    
-                    menu.innerHTML = `<div class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wider">Assign People</div>`;
-                    
-                    state.config.picMap.forEach(p => {
-                        const isSelected = task.pics?.includes(p.abbr);
-                        const item = document.createElement('div');
-                        item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`;
-                        item.onclick = () => App.togglePic(task.id, p.abbr);
-                        item.innerHTML = `
-                            <div class="w-3 h-3 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}">
-                                ${isSelected ? '<i data-lucide="check" class="w-2 h-2 text-white"></i>' : ''}
-                            </div>
-                            <div class="flex-1 flex items-center gap-2">
-                                <span class="font-bold" style="color: ${p.color}">${p.abbr}</span>
-                                <span class="text-gray-600 truncate">${p.name}</span>
-                            </div>
-                        `;
-                        menu.appendChild(item);
-                    });
-                    container.appendChild(menu);
-                }
-
-                return container;
             },
 
-            // --- Chart Rendering ---
+            openPicDropdown: (e, task) => {
+                e.stopPropagation();
+                // Close others
+                if(state.activeDropdown) {
+                    const existing = document.getElementById(`dropdown-${state.activeDropdown}`);
+                    if(existing) existing.remove();
+                }
+                
+                if (state.activeDropdown === task.id) {
+                    state.activeDropdown = null;
+                    return;
+                }
+
+                state.activeDropdown = task.id;
+                const container = document.getElementById(`pic-container-${task.id}`);
+                
+                const menu = document.createElement('div');
+                menu.id = `dropdown-${task.id}`;
+                menu.className = "absolute top-8 left-0 bg-white border border-gray-200 shadow-xl rounded-lg p-2 z-50 w-48 animate-fade-in";
+                menu.onclick = (e) => e.stopPropagation();
+                
+                menu.innerHTML = `<div class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wider">Assign People</div>`;
+                
+                state.config.picMap.forEach(p => {
+                    const isSelected = task.pics?.includes(p.abbr);
+                    const item = document.createElement('div');
+                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`;
+                    item.onclick = () => {
+                        if (task.pics.includes(p.abbr)) task.pics = task.pics.filter(x => x !== p.abbr);
+                        else task.pics.push(p.abbr);
+                        
+                        // Update UI without re-render
+                        const trigger = container.querySelector('div'); // The trigger div
+                        App.updatePicDisplay(trigger, task);
+                        
+                        // Re-render dropdown item to toggle check
+                        item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs ${!isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`; // Inverted logic for next click visual
+                        // Simple hack: just close and re-open or update innerHTML. 
+                        // Actually, easiest is just update chart and trigger autoSave
+                        App.openPicDropdown(e, task); // Refresh dropdown
+                        App.renderChart();
+                        App.autoSave();
+                    };
+                    item.innerHTML = `
+                        <div class="w-3 h-3 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}">
+                            ${isSelected ? '<i data-lucide="check" class="w-2 h-2 text-white"></i>' : ''}
+                        </div>
+                        <div class="flex-1 flex items-center gap-2">
+                            <span class="font-bold" style="color: ${p.color}">${p.abbr}</span>
+                            <span class="text-gray-600 truncate">${p.name}</span>
+                        </div>
+                    `;
+                    menu.appendChild(item);
+                });
+                container.appendChild(menu);
+                lucide.createIcons();
+            },
+
+            // --- Chart & Visuals ---
             renderChart: () => {
                 const header = document.getElementById('chart-header');
                 const bars = document.getElementById('chart-bars');
@@ -487,17 +521,13 @@
                 header.innerHTML = '';
                 bars.innerHTML = '';
                 
-                // Calculations
-                let minDate = new Date();
-                let maxDate = new Date();
-                
-                if (state.tasks.length > 0) {
-                    const starts = state.tasks.map(t => new Date(t.startDate));
-                    const ends = state.tasks.map(t => new Date(addDays(t.startDate, t.duration + 5)));
-                    minDate = new Date(Math.min(...starts));
-                    maxDate = new Date(Math.max(...ends));
-                }
+                if (state.tasks.length === 0) return;
+
+                const starts = state.tasks.map(t => new Date(t.startDate));
+                const ends = state.tasks.map(t => new Date(addDays(t.startDate, t.duration + 5)));
+                const minDate = new Date(Math.min(...starts));
                 minDate.setDate(minDate.getDate() - 2);
+                const maxDate = new Date(Math.max(...ends));
 
                 const timelineDays = [];
                 let curr = new Date(minDate);
@@ -506,10 +536,8 @@
                     curr.setDate(curr.getDate() + 1);
                 }
 
-                const totalWidth = timelineDays.length * state.zoom;
-                document.getElementById('chart-content').style.width = `${totalWidth}px`;
+                document.getElementById('chart-content').style.width = `${timelineDays.length * state.zoom}px`;
 
-                // Render Header
                 timelineDays.forEach(date => {
                     const div = document.createElement('div');
                     div.className = "flex-shrink-0 border-r border-gray-200/50 flex flex-col items-center justify-center text-[10px] text-gray-500 select-none";
@@ -518,115 +546,74 @@
                     header.appendChild(div);
                 });
 
-                // Render Bars
-                const startDateRef = timelineDays[0];
                 state.tasks.forEach(task => {
-                    const startOffset = getDaysDiff(startDateRef, task.startDate);
+                    const startOffset = getDaysDiff(timelineDays[0], task.startDate);
                     const typeConfig = state.config.activityTypes.find(t => t.name === task.type) || { color: '#ccc' };
                     const isCompleted = task.status === 'Completed';
-                    const barColor = typeConfig.color;
-
+                    
                     const row = document.createElement('div');
                     row.className = "relative row-height w-full border-b border-dashed border-gray-100 flex items-center group hover:bg-white/50";
-                    
                     const bar = document.createElement('div');
                     bar.className = `absolute h-6 rounded-sm text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 ${isCompleted ? 'shadow-sm' : ''}`;
-                    
-                    // Styles
                     bar.style.left = `${startOffset * state.zoom}px`;
                     bar.style.width = `${task.duration * state.zoom}px`;
-                    bar.style.backgroundColor = isCompleted ? barColor : `${barColor}15`;
-                    bar.style.border = isCompleted ? 'none' : `2px dashed ${barColor}`;
-                    bar.style.color = isCompleted ? 'white' : barColor;
-
-                    // Tooltip Events
+                    bar.style.backgroundColor = isCompleted ? typeConfig.color : `${typeConfig.color}15`;
+                    bar.style.border = isCompleted ? 'none' : `2px dashed ${typeConfig.color}`;
+                    bar.style.color = isCompleted ? 'white' : typeConfig.color;
+                    
                     bar.onmouseenter = (e) => App.showTooltip(e, task);
-                    bar.onmouseleave = () => App.hideTooltip();
-
+                    bar.onmouseleave = () => document.getElementById('custom-tooltip').classList.add('hidden');
+                    
                     row.appendChild(bar);
                     bars.appendChild(row);
                 });
+                
+                // Buffer row
+                const buf = document.createElement('div');
+                buf.className = "row-height border-b border-transparent";
+                bars.appendChild(buf);
 
-                // Add empty buffer row for the "Add Activity" button alignment
-                const buffer = document.createElement('div');
-                buffer.className = "row-height border-b border-transparent";
-                bars.appendChild(buffer);
-
-                // Today Line
                 const today = new Date();
-                const offset = getDaysDiff(startDateRef, today);
+                const offset = getDaysDiff(timelineDays[0], today);
                 if (offset >= 0 && offset < timelineDays.length) {
                     todayLine.style.display = 'block';
                     todayLine.style.left = `${(offset * state.zoom) + (state.zoom/2)}px`;
-                } else {
-                    todayLine.style.display = 'none';
-                }
+                } else { todayLine.style.display = 'none'; }
             },
 
-            // --- Legend Rendering ---
             renderLegend: () => {
-                const container = document.getElementById('legend-content');
-                container.innerHTML = '';
-                
-                // Activity Types
+                const c = document.getElementById('legend-content');
+                c.innerHTML = '';
                 const c1 = document.createElement('div');
                 c1.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Activity Types</h4>`;
-                state.config.activityTypes.forEach(t => {
-                    c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${t.color}"></div><span class="text-sm text-gray-600">${t.name}</span></div>`;
-                });
-                container.appendChild(c1);
-
-                // Status
+                state.config.activityTypes.forEach(t => c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${t.color}"></div><span class="text-sm text-gray-600">${t.name}</span></div>`);
+                c.appendChild(c1);
+                
                 const c2 = document.createElement('div');
-                c2.innerHTML = `
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Status Styles</h4>
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600">Completed</span></div>
-                        <div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-700">Dashed</div><span class="text-sm text-gray-600">Ongoing</span></div>
-                    </div>`;
-                container.appendChild(c2);
+                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Status Styles</h4><div class="space-y-2"><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-400 flex items-center justify-center text-[8px] text-white">Solid</div><span class="text-sm text-gray-600">Completed</span></div><div class="flex items-center gap-3"><div class="w-16 h-4 rounded-full bg-gray-100 border-2 border-dashed border-gray-400 flex items-center justify-center text-[8px] text-gray-700">Dashed</div><span class="text-sm text-gray-600">Ongoing</span></div></div>`;
+                c.appendChild(c2);
 
-                // PICs
                 const c3 = document.createElement('div');
-                c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Person In Charge</h4><div class="grid grid-cols-2 gap-2"></div>`;
+                c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">PIC</h4><div class="grid grid-cols-2 gap-2"></div>`;
                 const grid = c3.querySelector('.grid');
-                state.config.picMap.forEach(p => {
-                    grid.innerHTML += `<div class="flex items-center gap-2"><span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:${p.color}20; color:${p.color}">${p.abbr}</span><span class="text-sm text-gray-600">${p.name}</span></div>`;
-                });
-                container.appendChild(c3);
+                state.config.picMap.forEach(p => grid.innerHTML += `<div class="flex items-center gap-2"><span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:${p.color}20; color:${p.color}">${p.abbr}</span><span class="text-sm text-gray-600">${p.name}</span></div>`);
+                c.appendChild(c3);
             },
 
-            renderSettings: () => {
-                const c = document.getElementById('settings-content');
-                // Could render settings inputs here... for brevity, skipped, but structure is ready.
+            // --- Tooltip ---
+            showTooltip: (e, task) => {
+                const tip = document.getElementById('custom-tooltip');
+                const rect = e.target.getBoundingClientRect();
+                document.getElementById('tooltip-title').innerText = `${task.activityNo} ${task.description}`;
+                document.getElementById('tooltip-status').innerText = task.status;
+                const end = addDays(task.startDate, task.duration - 1);
+                document.getElementById('tooltip-date').innerText = `${formatDate(task.startDate)} - ${formatDate(end)}`;
+                tip.style.left = `${rect.left + (rect.width/2)}px`;
+                tip.style.top = `${rect.top}px`;
+                tip.classList.remove('hidden');
             },
 
-            // --- User Actions ---
-            updateTask: (id, field, value) => {
-                const task = state.tasks.find(t => t.id === id);
-                if (!task) return;
-                
-                if (field === 'duration') value = parseInt(value) || 1;
-                if (field === 'endDate') {
-                    const diff = getDaysDiff(task.startDate, value);
-                    task.duration = diff >= 0 ? diff + 1 : 1;
-                    // No need to set endDate directly
-                } else {
-                    task[field] = value;
-                }
-                
-                App.renderAll();
-            },
-
-            togglePic: (id, abbr) => {
-                const task = state.tasks.find(t => t.id === id);
-                if (!task.pics) task.pics = [];
-                if (task.pics.includes(abbr)) task.pics = task.pics.filter(p => p !== abbr);
-                else task.pics.push(abbr);
-                App.renderTable(); // Only table needed
-                lucide.createIcons();
-            },
-
+            // --- Actions ---
             addTask: () => {
                 const last = state.tasks[state.tasks.length-1];
                 const start = last ? last.startDate : new Date().toISOString().split('T')[0];
@@ -640,87 +627,34 @@
                     status: 'Pending',
                     type: 'Major Activity'
                 });
-                App.renderAll();
+                App.renderTable();
+                App.renderChart();
+                App.autoSave();
             },
 
             removeTask: (id) => {
-                state.tasks = state.tasks.filter(t => t.id !== id);
-                App.renderAll();
-            },
-
-            // --- Zoom ---
-            zoomIn: () => {
-                state.zoom = Math.min(state.zoom + 4, 80);
-                App.updateZoomDisplay();
-            },
-            zoomOut: () => {
-                state.zoom = Math.max(state.zoom - 4, 8);
-                App.updateZoomDisplay();
-            },
-            handleZoomSubmit: () => {
-                const inp = document.getElementById('zoom-input');
-                let val = parseInt(inp.value.replace('%', ''));
-                if (isNaN(val)) val = 100;
-                val = Math.max(20, Math.min(200, val));
-                state.zoom = (val / 100) * 40;
-                App.updateZoomDisplay();
-            },
-            updateZoomDisplay: () => {
-                document.getElementById('zoom-input').value = Math.round((state.zoom / 40) * 100) + '%';
-                App.renderChart();
-            },
-
-            // --- UI Toggles ---
-            toggleLegend: () => {
-                state.showLegend = !state.showLegend;
-                const panel = document.getElementById('legend-panel');
-                const chevron = document.getElementById('legend-chevron');
-                
-                if(state.showLegend) {
-                    panel.classList.remove('translate-y-full');
-                    panel.classList.add('translate-y-0');
-                    chevron.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4"></i>`;
-                } else {
-                    panel.classList.add('translate-y-full');
-                    panel.classList.remove('translate-y-0');
-                    chevron.innerHTML = `<i data-lucide="chevron-up" class="w-4 h-4"></i>`;
+                if(confirm('Delete this activity?')) {
+                    state.tasks = state.tasks.filter(t => t.id !== id);
+                    App.renderTable();
+                    App.renderChart();
+                    App.autoSave();
                 }
-                lucide.createIcons();
             },
 
-            toggleSettings: () => {
-                const modal = document.getElementById('settings-modal');
-                if (modal.classList.contains('hidden')) modal.classList.remove('hidden');
-                else modal.classList.add('hidden');
+            // --- Saving & Syncing ---
+            autoSave: () => {
+                clearTimeout(state.saveTimer);
+                document.getElementById('save-status').style.opacity = '0';
+                state.saveTimer = setTimeout(() => {
+                    App.saveChart(true);
+                }, 1000); // Save 1s after last edit
             },
 
-            // --- Tooltip ---
-            showTooltip: (e, task) => {
-                const tip = document.getElementById('custom-tooltip');
-                const rect = e.target.getBoundingClientRect();
-                
-                document.getElementById('tooltip-title').innerText = `${task.activityNo} ${task.description}`;
-                document.getElementById('tooltip-status').innerText = task.status;
-                const end = addDays(task.startDate, task.duration - 1);
-                document.getElementById('tooltip-date').innerText = `${formatDate(task.startDate)} - ${formatDate(end)}`;
-                
-                tip.style.left = `${rect.left + (rect.width/2)}px`;
-                tip.style.top = `${rect.top}px`;
-                tip.classList.remove('hidden');
-            },
-
-            hideTooltip: () => {
-                document.getElementById('custom-tooltip').classList.add('hidden');
-            },
-
-            // --- Saving ---
-            saveChart: async () => {
-                if(!dbInstance) {
-                    alert("Please configure your Firebase keys in the code (lines 330-340) to enable saving and sharing.");
-                    return;
-                }
-                App.showToast("Saving...", "info");
+            saveChart: async (silent = false) => {
+                if(!dbInstance) return;
                 const idToUse = state.chartId || generateId();
+                if(!silent) App.showToast("Saving...", "info");
+                
                 try {
                     await setDoc(doc(dbInstance, 'artifacts', appId, 'public', 'data', 'gantt_charts', idToUse), {
                         config: state.config,
@@ -731,79 +665,64 @@
                     
                     if (!state.chartId) {
                         state.chartId = idToUse;
-                        // Use the share logic to construct the URL
                         const url = new URL(window.location.href);
                         url.searchParams.set('id', idToUse);
                         window.history.pushState({}, '', url);
                     }
-                    App.showToast("Chart Saved Successfully!", "success");
+                    
+                    if(!silent) App.showToast("Saved!", "success");
+                    else document.getElementById('save-status').style.opacity = '1';
+                    
                 } catch(e) {
                     console.error(e);
-                    App.showToast("Failed to save. Check console.", "error");
+                    if(!silent) App.showToast("Error saving", "error");
                 }
             },
 
             shareLink: async () => {
-                if(!dbInstance) {
-                    alert("Please configure your Firebase keys in the code to enable sharing.");
-                    return;
-                }
-
-                // Ensure data is saved first to generate an ID
-                if(!state.chartId) {
-                    await App.saveChart();
-                }
+                if(!state.chartId) await App.saveChart();
+                const url = new URL(window.location.href);
+                if(state.chartId) url.searchParams.set('id', state.chartId);
                 
-                // If ID is available (save successful)
-                if(state.chartId) {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('id', state.chartId);
-                    const shareableLink = url.toString();
-
-                    try {
-                        await navigator.clipboard.writeText(shareableLink);
-                        App.showToast("Link Copied to Clipboard!", "success");
-                        // Ensure address bar reflects the link too
-                        window.history.replaceState({}, '', shareableLink);
-                    } catch(e) {
-                        // Fallback for browsers blocking clipboard access
-                        const input = document.createElement('textarea');
-                        input.value = shareableLink;
-                        document.body.appendChild(input);
-                        input.select();
-                        try {
-                            document.execCommand('copy');
-                            App.showToast("Link Copied to Clipboard!", "success");
-                        } catch (err) {
-                            App.showToast("Could not copy link automatically.", "error");
-                            prompt("Copy this link:", shareableLink);
-                        }
-                        document.body.removeChild(input);
-                    }
-                }
+                navigator.clipboard.writeText(url.toString()).then(() => {
+                    App.showToast("Link Copied!", "success");
+                }).catch(() => {
+                    prompt("Copy link:", url.toString());
+                });
             },
 
+            // --- UI Helpers ---
+            zoomIn: () => { state.zoom = Math.min(state.zoom + 4, 80); App.updateZoom(); },
+            zoomOut: () => { state.zoom = Math.max(state.zoom - 4, 8); App.updateZoom(); },
+            updateZoom: () => {
+                document.getElementById('zoom-input').value = Math.round((state.zoom / 40) * 100) + '%';
+                App.renderChart();
+            },
+            toggleLegend: () => {
+                state.showLegend = !state.showLegend;
+                const p = document.getElementById('legend-panel');
+                const i = document.getElementById('legend-chevron');
+                p.classList.toggle('translate-y-full', !state.showLegend);
+                i.innerHTML = `<i data-lucide="${state.showLegend ? 'chevron-down' : 'chevron-up'}" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+            },
+            toggleSettings: () => {
+                document.getElementById('settings-modal').classList.toggle('hidden');
+            },
+            renderSettings: () => { /* Settings inputs logic can go here */ },
             showToast: (msg, type) => {
                 const t = document.getElementById('toast');
-                const icon = document.getElementById('toast-icon');
-                const txt = document.getElementById('toast-message');
-                
                 t.className = `fixed bottom-8 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2 z-[70] transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`;
-                icon.innerHTML = type === 'success' ? '<i data-lucide="check" class="w-3 h-3"></i>' : '';
-                txt.innerText = msg;
-                
+                document.getElementById('toast-message').innerText = msg;
+                document.getElementById('toast-icon').innerHTML = type === 'success' ? '<i data-lucide="check" class="w-3 h-3"></i>' : '';
                 lucide.createIcons();
                 setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
                 t.classList.remove('translate-y-20', 'opacity-0');
             }
         };
 
-        // Expose to window for inline onclicks
         window.app = App;
-
-        // Start
         App.init();
     </script>
 </body>
 </html>
-
