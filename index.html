@@ -38,16 +38,23 @@
         body { font-family: 'Inter', sans-serif; }
         
         /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 12px; height: 12px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 6px; 
+            border: 2px solid #f1f5f9; 
+        }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #475569; 
+            border-color: #1e293b;
+        }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
-        /* Hide Date Picker Icon - use click to activate */
+        /* Hide Date Picker Icon */
         input[type="date"] { position: relative; }
         input[type="date"]::-webkit-calendar-picker-indicator {
             background: transparent;
@@ -66,24 +73,13 @@
         @keyframes fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
         
-        .min-row-height { min-height: 52px; }
-        .header-height { height: 50px; }
-        
-        /* Avatar Stack */
-        .avatar-stack { display: flex; -webkit-user-select: none; user-select: none; flex-direction: row-reverse; }
-        .avatar-stack .avatar { 
-            width: 28px; height: 28px; border-radius: 50%; 
-            border: 2px solid white; margin-left: -8px; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: bold; color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            position: relative;
-            transition: transform 0.2s;
+        /* Tooltip */
+        .tooltip-box {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        .dark .avatar-stack .avatar { border-color: #1e293b; }
-        .avatar-stack .avatar:hover { transform: translateY(-2px); z-index: 10; }
-        .avatar-stack .avatar:last-child { margin-left: 0; }
-        .online-dot { position: absolute; bottom: 0; right: 0; width: 8px; height: 8px; background: #22c55e; border: 1px solid white; border-radius: 50%; }
+        
+        .min-row-height { min-height: 52px; }
+        .header-height { height: 70px; }
         
         /* Hover Add Trigger */
         .hover-add-trigger {
@@ -113,7 +109,7 @@
             cursor: col-resize;
             background-color: #e2e8f0;
             transition: background-color 0.2s;
-            z-index: 20;
+            z-index: 50;
             flex-shrink: 0;
         }
         .dark .resizer { background-color: #334155; }
@@ -180,15 +176,15 @@
         <!-- Table Pane -->
         <div id="table-pane" class="overflow-y-auto overflow-x-auto border-r border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 h-full custom-scrollbar flex-none z-10 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]" style="width: 700px; flex-shrink: 0;">
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
-                <thead class="text-xs text-gray-700 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-20 header-height">
+                <thead class="text-xs text-gray-700 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-20 header-height shadow-sm">
                     <tr>
-                        <th class="px-2 align-middle w-14 text-center">#</th>
-                        <th class="px-2 align-middle w-40">Activity</th>
-                        <th class="px-2 align-middle w-28">Start</th>
-                        <th class="px-2 align-middle w-28">End</th>
-                        <th class="px-2 align-middle w-12 text-center">Days</th>
-                        <th class="px-2 align-middle w-28">PIC</th>
-                        <th class="px-2 align-middle w-28">Status</th>
+                        <th class="px-2 align-middle w-14 text-center border-r border-gray-100 dark:border-slate-700">#</th>
+                        <th class="px-2 align-middle w-40 border-r border-gray-100 dark:border-slate-700">Activity</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">Start</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">End</th>
+                        <th class="px-2 align-middle w-12 text-center border-r border-gray-100 dark:border-slate-700">Days</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">PIC</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">Status</th>
                         <th class="px-2 align-middle w-10"></th>
                     </tr>
                 </thead>
@@ -226,7 +222,7 @@
     </div>
 
     <!-- Drawer: Legend & Config -->
-    <div id="drawer-container" class="fixed bottom-0 left-0 right-0 z-[60] flex flex-col justify-end transition-transform duration-300 translate-y-full">
+    <div id="drawer-container" class="fixed bottom-0 left-0 right-0 z-[60] flex flex-col justify-end transition-transform duration-300 translate-y-full pointer-events-none">
          
          <!-- Tab Button (Sticks out) -->
          <div class="w-full flex justify-end px-6 pb-0 absolute -top-10 right-0 pointer-events-auto">
@@ -255,7 +251,7 @@
     </div>
 
     <!-- Custom Tooltip (Updated Visuals) -->
-    <div id="custom-tooltip" class="hidden fixed z-[100] bg-gray-900/90 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none mt-[-8px]">
+    <div id="custom-tooltip" class="hidden fixed z-[100] bg-gray-900/90 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-xl text-xs pointer-events-none mt-[-8px] tooltip-box">
         <div id="tooltip-title" class="font-bold mb-1 border-b border-gray-700 pb-1"></div>
         <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10px] text-gray-300">
             <span>Status:</span> <span id="tooltip-status" class="text-white font-medium"></span>
@@ -340,6 +336,7 @@
         };
 
         function generateId() { return Math.random().toString(36).substr(2, 9); }
+        // Display Format - DD/MM/YY
         function formatDateDisplay(isoStr) { 
             if(!isoStr) return ''; 
             if(isoStr.includes('/')) return isoStr; 
@@ -355,19 +352,10 @@
         }
         function getDaysDiff(start, end) { return Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); }
         
+        // --- Color Logic ---
         function getTaskLevel(activityNo) {
             if(!activityNo) return 0;
             return (activityNo.match(/\./g) || []).length; 
-        }
-        
-        // Helper to check for light/dark text
-        function getContrastYIQ(hexcolor){
-            if(!hexcolor) return 'black';
-            var r = parseInt(hexcolor.substr(1,2),16);
-            var g = parseInt(hexcolor.substr(3,2),16);
-            var b = parseInt(hexcolor.substr(5,2),16);
-            var yiq = ((r*299)+(g*587)+(b*114))/1000;
-            return (yiq >= 128) ? 'black' : 'white';
         }
         
         function adjustBrightness(col, amt) {
@@ -384,6 +372,17 @@
             var g = (num & 0x0000FF) + amt;
             if (g > 255) g = 255; else if  (g < 0) g = 0;
             return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16).padStart(6,'0');
+        }
+        
+        // Helper to check for light/dark text
+        function getContrastYIQ(hexcolor){
+            if(!hexcolor) return 'black';
+            if(hexcolor.startsWith('#')) hexcolor = hexcolor.substring(1);
+            var r = parseInt(hexcolor.substr(0,2),16);
+            var g = parseInt(hexcolor.substr(2,2),16);
+            var b = parseInt(hexcolor.substr(4,2),16);
+            var yiq = ((r*299)+(g*587)+(b*114))/1000;
+            return (yiq >= 128) ? 'black' : 'white';
         }
 
         function getThemeColor(baseColor, level) {
@@ -471,6 +470,11 @@
                         dropdown.remove();
                         state.activeDropdown = null;
                     }
+                    const drawer = document.getElementById('drawer-container');
+                    const tabBtn = document.querySelector('button[onclick="app.toggleLegend()"]');
+                    if (state.showLegend && !drawer.contains(e.target) && !tabBtn.contains(e.target)) {
+                         // Optional: Close drawer logic here if desired
+                    }
                 });
             },
 
@@ -538,7 +542,6 @@
 
             updateDOMFromState: (lastUpdated, authorId) => {
                 document.title = state.config.title + " | GanttMaster";
-
                 const titleEl = document.getElementById('app-title');
                 if(titleEl && document.activeElement !== titleEl) titleEl.value = state.config.title;
                 const subEl = document.getElementById('app-subtitle');
@@ -555,30 +558,44 @@
                 if (existingRows.length !== state.tasks.length) {
                     App.renderTable();
                 } else {
+                    const phaseTextColor = getContrastYIQ(state.config.themeColor);
+                    
                     state.tasks.forEach((task, index) => {
                         const tr = document.getElementById(`tr-${task.id}`);
-                        
-                        // Update visual phase/parent styling
                         const isPhase = !task.activityNo.includes('.');
+                        const isMajor = task.activityNo.includes('.') && task.activityNo.split('.').length === 2;
+                        
                         if(tr) {
                             if(isPhase) {
                                 tr.style.backgroundColor = state.config.themeColor;
+                                tr.style.color = phaseTextColor; 
                                 tr.style.borderTop = "1px solid #cbd5e1";
-                                const textColor = getContrastYIQ(state.config.themeColor);
-                                tr.style.color = textColor;
                                 const inputs = tr.querySelectorAll('input, textarea, select');
                                 inputs.forEach(inp => {
-                                    inp.style.color = textColor;
+                                    inp.style.color = phaseTextColor;
+                                    inp.style.fontWeight = 'bold';
                                     if(inp.tagName === 'SELECT') {
-                                        inp.style.borderColor = (textColor === 'white') ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+                                        inp.style.borderColor = (phaseTextColor === 'white') ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
                                     }
+                                });
+                            } else if (isMajor) {
+                                tr.style.backgroundColor = '';
+                                tr.style.color = '';
+                                tr.style.borderTop = '';
+                                const inputs = tr.querySelectorAll('input, textarea, select');
+                                inputs.forEach(inp => {
+                                    inp.style.color = '';
+                                    inp.style.fontWeight = 'bold';
                                 });
                             } else {
                                 tr.style.backgroundColor = '';
-                                tr.style.borderTop = '';
                                 tr.style.color = '';
+                                tr.style.borderTop = '';
                                 const inputs = tr.querySelectorAll('input, textarea, select');
-                                inputs.forEach(inp => inp.style.color = '');
+                                inputs.forEach(inp => {
+                                    inp.style.color = '';
+                                    inp.style.fontWeight = 'normal';
+                                });
                             }
                             if(task.isParent && !tr.classList.contains('parent-row')) tr.classList.add('parent-row');
                             else if(!task.isParent && tr.classList.contains('parent-row')) tr.classList.remove('parent-row');
@@ -640,7 +657,6 @@
                 const scrollT = document.getElementById('table-pane').scrollTop;
                 tbody.innerHTML = '';
                 
-                // Get Text Color for Phases
                 const phaseTextColor = getContrastYIQ(state.config.themeColor);
 
                 state.tasks.forEach((task, index) => {
@@ -656,14 +672,13 @@
                     
                     if (isPhase) {
                         rowStyle = `background-color: ${state.config.themeColor}; color: ${phaseTextColor}; border-top: 1px solid #cbd5e1;`;
-                        textClass = phaseTextColor === 'white' ? "text-white font-bold" : "text-black font-bold";
+                        textClass = `${phaseTextColor === 'white' ? 'text-white' : 'text-black'} font-bold`;
                     } else if (isMajor) {
-                        rowClass += " font-bold bg-gray-50 dark:bg-slate-800";
+                        rowClass += " bg-gray-50 dark:bg-slate-800";
                         textClass = "text-gray-800 dark:text-slate-200 font-bold";
                     } else {
                         rowClass += " hover:bg-gray-50 dark:hover:bg-slate-800";
                     }
-                    if(task.isParent) rowClass += " parent-row";
 
                     tr.className = rowClass;
                     tr.style.cssText = rowStyle;
@@ -671,7 +686,7 @@
                     const endDateVal = (task.startDate && task.duration) ? addDays(task.startDate, task.duration - 1) : '';
                     const inputClassBase = "w-full bg-transparent outline-none text-center text-xs";
                     const inputClass = isPhase ? `${inputClassBase} ${textClass} placeholder-${phaseTextColor}/70` : `${inputClassBase} ${textClass}`;
-                    const descClass = isPhase ? `w-full bg-transparent outline-none text-sm auto-textarea align-middle resize-none overflow-hidden ${textClass}` : "w-full bg-transparent outline-none font-medium text-gray-800 dark:text-slate-200 text-sm auto-textarea align-middle resize-none overflow-hidden";
+                    const descClass = isPhase ? `w-full bg-transparent outline-none text-sm auto-textarea align-middle resize-none overflow-hidden ${textClass}` : `w-full bg-transparent outline-none font-medium text-sm auto-textarea align-middle resize-none overflow-hidden ${textClass}`;
                     
                     const isLast = index === state.tasks.length - 1;
                     const hoverBtn = isLast ? '' : `
@@ -679,36 +694,35 @@
                             <i data-lucide="plus" class="w-3 h-3"></i>
                         </button>`;
                     
-                    // Button color override for phases
                     const delBtnClass = isPhase ? `transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 text-${phaseTextColor}/70 hover:text-${phaseTextColor} hover:bg-${phaseTextColor}/20` : 'text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-slate-700';
 
                     tr.innerHTML = `
-                        <td class="px-2 align-middle text-center relative group/cell">
+                        <td class="px-2 align-middle text-center relative group/cell border-r border-gray-100 dark:border-slate-700">
                             <input id="act-${task.id}" type="text" class="${inputClass}" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)" onchange="app.commitActivityNo('${task.id}', this.value)">
                             ${hoverBtn}
                         </td>
-                        <td class="px-2 align-middle py-1">
+                        <td class="px-2 align-middle py-1 border-r border-gray-100 dark:border-slate-700">
                             <textarea id="desc-${task.id}" rows="1" class="${descClass}" oninput="app.handleInput('${task.id}', 'description', this.value, this)">${task.description}</textarea>
                         </td>
-                        <td class="px-2 align-middle">
-                            <input id="start-${task.id}" type="text" class="${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'} bg-transparent outline-none w-full cursor-pointer text-xs font-mono" 
+                        <td class="px-2 align-middle border-r border-gray-100 dark:border-slate-700">
+                            <input id="start-${task.id}" type="text" class="${inputClass.replace('text-center','')}" 
                                 value="${task.startDate ? formatDateDisplay(task.startDate) : ''}" 
                                 onfocus="(this.type='date');this.showPicker();this.value='${task.startDate || ''}'" 
                                 onblur="(this.type='text');this.value=app.formatDateDisplay(this.value);"
                                 onchange="app.handleInput('${task.id}', 'startDate', this.value)">
                         </td>
-                        <td class="px-2 align-middle">
-                             <input id="end-${task.id}" type="text" class="${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'} bg-transparent outline-none w-full cursor-pointer text-xs font-mono" 
+                        <td class="px-2 align-middle border-r border-gray-100 dark:border-slate-700">
+                             <input id="end-${task.id}" type="text" class="${inputClass.replace('text-center','')}" 
                                 value="${endDateVal ? formatDateDisplay(endDateVal) : ''}" 
                                 onfocus="(this.type='date');this.showPicker();this.value='${endDateVal || ''}'" 
                                 onblur="(this.type='text');this.value=app.formatDateDisplay(this.value);"
                                 onchange="app.handleInput('${task.id}', 'endDate', this.value)">
                         </td>
-                        <td class="px-2 align-middle text-center">
+                        <td class="px-2 align-middle text-center border-r border-gray-100 dark:border-slate-700">
                             <input id="dur-${task.id}" type="number" min="1" class="${inputClass}" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value, this)">
                         </td>
-                        <td class="px-2 align-middle pic-cell relative"></td>
-                        <td class="px-2 align-middle">
+                        <td class="px-2 align-middle pic-cell relative border-r border-gray-100 dark:border-slate-700"></td>
+                        <td class="px-2 align-middle border-r border-gray-100 dark:border-slate-700">
                              <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border ${isPhase ? 'border-' + phaseTextColor + '/30' : 'border-transparent dark:border-slate-600 focus:border-gray-300 dark:focus:border-slate-500'} cursor-pointer ${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
                                 ${state.config.statusMap.map(s => `<option class="text-gray-800" value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
@@ -742,13 +756,11 @@
 
             formatDateDisplay: formatDateDisplay,
             
-            // New separate handler for committing activity number change
             commitActivityNo: (id, value) => {
                 const task = state.tasks.find(t => t.id === id);
                 if (!task) return;
                 task.activityNo = value;
-                App.identifyParents();
-                App.renderTable(); // Full re-render needed for hierarchy/styling changes
+                App.renderTable(); 
                 App.autoSave();
             },
 
@@ -776,7 +788,6 @@
                     const durInput = document.getElementById(`dur-${id}`);
                     if(durInput) durInput.value = newDur;
                 } else if (field === 'activityNo') {
-                    // Just update state, do NOT re-render table to keep focus
                     task.activityNo = value;
                 } else {
                     task[field] = value;
@@ -911,7 +922,6 @@
                 const header = document.getElementById('chart-header');
                 const bars = document.getElementById('chart-bars');
                 const todayLine = document.getElementById('today-line');
-                
                 const scrollT = document.getElementById('chart-pane').scrollTop;
 
                 header.innerHTML = '';
@@ -919,10 +929,8 @@
                 
                 if (state.tasks.length === 0) return;
 
-                // Safely handle empty/invalid dates for bounds calculation
                 let validTasks = state.tasks.filter(t => t.startDate && t.duration);
                 if (validTasks.length === 0) {
-                     // Fallback to today if no valid tasks
                      validTasks = [{startDate: new Date().toISOString().split('T')[0], duration: 1}];
                 }
 
@@ -941,21 +949,59 @@
 
                 document.getElementById('chart-content').style.width = `${timelineDays.length * state.zoom}px`;
 
-                timelineDays.forEach(date => {
-                    const div = document.createElement('div');
-                    div.className = "flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col items-center justify-center text-[10px] text-gray-500 dark:text-slate-400 select-none";
-                    div.style.width = `${state.zoom}px`;
-                    div.innerHTML = `<span class="font-bold">${date.getDate()}</span><span>${date.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>`;
-                    header.appendChild(div);
+                // Render Header (Months and Days)
+                let currentMonth = -1;
+                let monthWidth = 0;
+                let monthLabel = "";
+                
+                header.className = "flex flex-col border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 sticky top-0 z-10 header-height shadow-sm";
+                header.innerHTML = `
+                    <div id="header-months" class="flex border-b border-gray-200 dark:border-slate-700 h-1/2 overflow-hidden"></div>
+                    <div id="header-days" class="flex h-1/2"></div>
+                `;
+                const monthRow = document.getElementById('header-months');
+                const dayRow = document.getElementById('header-days');
+
+                let monthBuffer = [];
+                
+                timelineDays.forEach((date, i) => {
+                    // Day Cell
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = "flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col items-center justify-center text-[10px] text-gray-500 dark:text-slate-400 select-none";
+                    dayDiv.style.width = `${state.zoom}px`;
+                    dayDiv.innerHTML = `<span class="font-bold">${date.getDate()}</span><span class="text-[8px]">${date.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>`;
+                    dayRow.appendChild(dayDiv);
+
+                    // Month Logic
+                    if (currentMonth !== date.getMonth()) {
+                         if (monthBuffer.length > 0) {
+                             const mDiv = document.createElement('div');
+                             mDiv.className = "flex items-center pl-2 text-xs font-bold text-gray-600 dark:text-slate-300 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap overflow-hidden";
+                             mDiv.style.width = `${monthBuffer.length * state.zoom}px`;
+                             mDiv.innerText = monthLabel;
+                             monthRow.appendChild(mDiv);
+                         }
+                         currentMonth = date.getMonth();
+                         monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                         monthBuffer = [date];
+                    } else {
+                        monthBuffer.push(date);
+                    }
+                    
+                    if (i === timelineDays.length - 1 && monthBuffer.length > 0) {
+                         const mDiv = document.createElement('div');
+                         mDiv.className = "flex items-center pl-2 text-xs font-bold text-gray-600 dark:text-slate-300 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap overflow-hidden";
+                         mDiv.style.width = `${monthBuffer.length * state.zoom}px`;
+                         mDiv.innerText = monthLabel;
+                         monthRow.appendChild(mDiv);
+                    }
                 });
 
                 state.tasks.forEach((task, index) => {
-                    // Sync Height with Table
                     const tableRow = document.getElementById(`tr-${task.id}`);
                     const rowHeight = tableRow ? tableRow.getBoundingClientRect().height : 52;
                     
                     const row = document.createElement('div');
-                    // Add border top to chart row if it matches a phase
                     const isPhase = !task.activityNo.includes('.');
                     const borderTop = isPhase ? `border-top: 1px solid #cbd5e1;` : '';
                     row.className = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50";
@@ -996,6 +1042,7 @@
                 if (offset >= 0 && offset < timelineDays.length) {
                     todayLine.style.display = 'block';
                     todayLine.style.left = `${(offset * state.zoom) + (state.zoom/2)}px`;
+                    todayLine.style.top = '0px'; 
                 } else { todayLine.style.display = 'none'; }
             },
 
@@ -1021,18 +1068,10 @@
                 c.appendChild(c1);
                 
                 const c2 = document.createElement('div');
-                const addStatusBtn = `<button onclick="app.addConfigItem('status')" class="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline ml-2">+ Add</button>`;
-                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Statuses ${addStatusBtn}</h4><div class="space-y-2"></div>`;
-                const statusContainer = c2.querySelector('div');
-                state.config.statusMap.forEach((s, i) => {
-                    statusContainer.innerHTML += `
-                        <div class="flex items-center gap-2">
-                             <input type="color" class="w-4 h-4 rounded border-none cursor-pointer p-0" value="${s.color}" oninput="app.updateConfig('statusMap', ${i}, 'color', this.value)">
-                             <input class="flex-1 bg-transparent border-b border-transparent focus:border-gray-300 text-sm" value="${s.name}" oninput="app.updateConfig('statusMap', ${i}, 'name', this.value)">
-                             <button onclick="app.removeConfigItem('status', ${i})" class="text-gray-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                        </div>
-                    `;
-                });
+                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Status Styles</h4>
+                    <div class="space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                        Colors are handled by theme now.
+                    </div>`;
                 c.appendChild(c2);
 
                 const c3 = document.createElement('div');
@@ -1112,7 +1151,6 @@
                 
                 document.getElementById('table-pane').scrollTop = scrollT;
                 
-                // Focus the description of the new task for smoother flow
                 setTimeout(() => {
                     const descInput = document.getElementById(`desc-${newTask.id}`);
                     if(descInput) descInput.focus();
