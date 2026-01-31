@@ -24,6 +24,8 @@
                     },
                     cursor: {
                         'col-resize': 'col-resize',
+                        'grab': 'grab',
+                        'grabbing': 'grabbing',
                     }
                 }
             }
@@ -70,6 +72,15 @@
         .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-color: #334155; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-color: #1e293b; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* --- Hide Scrollbar but allow scroll --- */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
         
         /* Hide Date Picker Icon */
         input[type="date"] { position: relative; }
@@ -226,7 +237,7 @@
         <div id="pane-resizer" class="resizer"></div>
 
         <!-- Chart Pane -->
-        <div id="chart-pane" class="flex-1 overflow-auto bg-gray-50/50 dark:bg-slate-900 relative custom-scrollbar h-full cursor-grab">
+        <div id="chart-pane" class="flex-1 overflow-auto bg-gray-50/50 dark:bg-slate-900 relative no-scrollbar h-full cursor-grab">
             <div id="chart-content" class="relative pb-20">
                 <!-- Header Dates -->
                 <div id="chart-header" class="flex border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 sticky top-0 z-10 header-height shadow-sm">
@@ -484,6 +495,49 @@
 
 
                 const tp = document.getElementById('table-pane'), cp = document.getElementById('chart-pane');
+                
+                // --- Drag to Scroll for Chart Pane ---
+                let isDown = false;
+                let startX;
+                let startY;
+                let scrollLeft;
+                let scrollTop;
+
+                cp.addEventListener('mousedown', (e) => {
+                    // Prevent drag if clicking a scrollbar (though hidden, logic remains safe)
+                    isDown = true;
+                    cp.classList.add('cursor-grabbing');
+                    cp.classList.remove('cursor-grab');
+                    startX = e.pageX - cp.offsetLeft;
+                    startY = e.pageY - cp.offsetTop;
+                    scrollLeft = cp.scrollLeft;
+                    scrollTop = cp.scrollTop;
+                });
+
+                cp.addEventListener('mouseleave', () => {
+                    isDown = false;
+                    cp.classList.remove('cursor-grabbing');
+                    cp.classList.add('cursor-grab');
+                });
+
+                cp.addEventListener('mouseup', () => {
+                    isDown = false;
+                    cp.classList.remove('cursor-grabbing');
+                    cp.classList.add('cursor-grab');
+                });
+
+                cp.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - cp.offsetLeft;
+                    const y = e.pageY - cp.offsetTop;
+                    const walkX = (x - startX); // 1:1 scroll speed
+                    const walkY = (y - startY);
+                    cp.scrollLeft = scrollLeft - walkX;
+                    cp.scrollTop = scrollTop - walkY;
+                });
+                // -------------------------------------
+
                 let syncL = false, syncR = false;
                 tp.onscroll = function() { 
                     if (!syncL) { syncR = true; cp.scrollTop = this.scrollTop; } syncL = false; 
