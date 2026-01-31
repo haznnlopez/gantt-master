@@ -322,13 +322,13 @@
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
                 <thead class="text-xs text-gray-700 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-20 header-height shadow-sm">
                     <tr>
-                        <th class="px-2 align-middle w-14 text-center border-r border-gray-100 dark:border-slate-700">#</th>
-                        <th class="px-2 align-middle w-40 border-r border-gray-100 dark:border-slate-700">Activity</th>
-                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">Start</th>
-                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">End</th>
-                        <th class="px-2 align-middle w-12 text-center border-r border-gray-100 dark:border-slate-700">Days</th>
-                        <th class="px-2 align-middle w-36 border-r border-gray-100 dark:border-slate-700">PIC</th>
-                        <th class="px-2 align-middle w-28 border-r border-gray-100 dark:border-slate-700">Status</th>
+                        <th class="px-2 align-middle w-14 text-center border-r border-dashed border-gray-200 dark:border-slate-700">#</th>
+                        <th class="px-2 align-middle w-40 border-r border-dashed border-gray-200 dark:border-slate-700">Activity</th>
+                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">Start</th>
+                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">End</th>
+                        <th class="px-2 align-middle w-12 text-center border-r border-dashed border-gray-200 dark:border-slate-700">Days</th>
+                        <th class="px-2 align-middle w-36 border-r border-dashed border-gray-200 dark:border-slate-700">PIC</th>
+                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">Status</th>
                         <th class="px-2 align-middle w-10"></th>
                     </tr>
                 </thead>
@@ -930,7 +930,7 @@
                     const isMajor = task.activityNo.includes('.') && task.activityNo.split('.').length === 2;
                     
                     // Row Class - Dotted bottom border for grid effect
-                    let rowClass = "border-b border-dotted border-gray-200 dark:border-slate-700 group transition-colors min-row-height";
+                    let rowClass = "border-b border-dashed border-gray-200 dark:border-slate-700 group transition-colors min-row-height";
                     let rowStyle = "";
                     let textClass = "text-gray-500 dark:text-slate-400"; 
                     
@@ -949,7 +949,7 @@
                     tr.style.cssText = rowStyle;
                     
                     // Vertical Borders - Dotted
-                    const cellBorder = isPhase ? 'border-none' : 'border-r border-dotted border-gray-200 dark:border-slate-700';
+                    const cellBorder = isPhase ? 'border-none' : 'border-r border-dashed border-gray-200 dark:border-slate-700';
 
                     const endDateVal = (task.startDate && task.duration) ? addDays(task.startDate, task.duration - 1) : '';
                     const inputClassBase = "w-full bg-transparent outline-none text-center text-xs";
@@ -1422,7 +1422,7 @@
                     const row = document.createElement('div');
                     const isPhase = !task.activityNo.includes('.');
                     const borderTop = isPhase ? `border-top: 1px solid #cbd5e1;` : '';
-                    row.className = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50 bar-element";
+                    row.className = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50";
                     row.style.height = `${rowHeight}px`; 
                     row.style.cssText += borderTop;
 
