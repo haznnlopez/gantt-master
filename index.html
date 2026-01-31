@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GanttMaster</title>
+    <!-- Tab Icon (Favicon) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -245,8 +247,8 @@
     <div id="drawer-container" class="fixed bottom-0 left-0 right-0 z-[60] flex flex-col justify-end transition-transform duration-300 translate-y-full pointer-events-none">
          
          <!-- Tab Button (Sticks out) -->
-         <div class="w-full flex justify-end px-6 pb-0 absolute -top-10 right-0 pointer-events-auto">
-            <button onclick="app.toggleLegend()" class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-t border-l border-r border-gray-200 dark:border-slate-700 px-5 py-2.5 rounded-t-xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex items-center gap-2 text-sm font-bold hover:bg-gray-50 dark:hover:bg-slate-700 transition-all">
+         <div class="w-full flex justify-end px-6 pb-0 absolute -top-10 right-0 pointer-events-none">
+            <button onclick="app.toggleLegend()" class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-t border-l border-r border-gray-200 dark:border-slate-700 px-5 py-2.5 rounded-t-xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex items-center gap-2 text-sm font-bold hover:bg-gray-50 dark:hover:bg-slate-700 transition-all pointer-events-auto">
                 <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
                 <span>Legend & Config</span>
                 <span id="legend-chevron" class="ml-1 transition-transform duration-300"><i data-lucide="chevron-up" class="w-4 h-4"></i></span>
@@ -409,6 +411,27 @@
             const factors = [0, 0.25, 0.5, 0.75, 0.85];
             const factor = factors[Math.min(level, factors.length - 1)];
             return tintColor(baseColor, factor);
+        }
+        
+        function incrementActivityNo(prev) {
+            if (!prev) return '1.0';
+            const parts = prev.split('.');
+            // If it has parts (e.g., 1.1), increment the last part
+            if (parts.length > 1) {
+                const last = parts.pop();
+                if (!isNaN(last)) {
+                    parts.push(parseInt(last) + 1);
+                    return parts.join('.');
+                }
+            } 
+            // If it's a phase (e.g. 1.0) and simplistic logic
+            else if (parts.length === 1 && !isNaN(parts[0])) {
+                 // But wait, the previous code was using fixed(1) which adds .0 if int
+                 // If prev is "1.0", split is ["1", "0"], last is "0" -> "1" => "1.1"
+                 // If prev is "1", split is ["1"], last is "1" -> "2" => "2"
+            }
+            // Fallback for weird strings
+            return prev + '.1';
         }
 
         const App = {
@@ -580,7 +603,9 @@
                 if (existingRows.length !== state.tasks.length) {
                     App.renderTable();
                 } else {
-                    const phaseTextColor = getContrastYIQ(state.config.themeColor);
+                    // Update bg color for phase to use 25% tint (0.25)
+                    const phaseBg = tintColor(state.config.themeColor, 0.25);
+                    const phaseTextColor = getContrastYIQ(phaseBg);
                     
                     state.tasks.forEach((task, index) => {
                         const tr = document.getElementById(`tr-${task.id}`);
@@ -589,7 +614,7 @@
                         
                         if(tr) {
                             if(isPhase) {
-                                tr.style.backgroundColor = state.config.themeColor;
+                                tr.style.backgroundColor = phaseBg;
                                 tr.style.color = phaseTextColor; 
                                 tr.style.borderTop = "1px solid #fff";
                                 const inputs = tr.querySelectorAll('input, textarea, select');
@@ -681,7 +706,9 @@
                 const scrollT = document.getElementById('table-pane').scrollTop;
                 tbody.innerHTML = '';
                 
-                const phaseTextColor = getContrastYIQ(state.config.themeColor);
+                // Set phase background to 25% tint
+                const phaseBg = tintColor(state.config.themeColor, 0.25);
+                const phaseTextColor = getContrastYIQ(phaseBg);
 
                 state.tasks.forEach((task, index) => {
                     const tr = document.createElement('tr');
@@ -695,7 +722,7 @@
                     let textClass = "text-gray-500 dark:text-slate-400"; 
                     
                     if (isPhase) {
-                        rowStyle = `background-color: ${state.config.themeColor}; color: ${phaseTextColor}; border-top: 1px solid #fff;`;
+                        rowStyle = `background-color: ${phaseBg}; color: ${phaseTextColor}; border-top: 1px solid #fff;`;
                         textClass = `${phaseTextColor === 'white' ? 'text-white' : 'text-black'} font-bold`;
                     } else if (isMajor) {
                         rowClass += " bg-gray-50 dark:bg-slate-800";
@@ -825,9 +852,13 @@
             addTask: () => {
                 const last = state.tasks[state.tasks.length-1];
                 const startDate = last ? last.startDate : '';
+                
+                // Use smart increment
+                const nextNo = incrementActivityNo(last?.activityNo);
+
                 const newTask = {
                     id: generateId(),
-                    activityNo: ((parseFloat(last?.activityNo) || 0) + 1).toFixed(1),
+                    activityNo: nextNo,
                     description: 'New Activity',
                     startDate: startDate,
                     duration: 1,
