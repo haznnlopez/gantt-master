@@ -357,22 +357,6 @@
             return (activityNo.match(/\./g) || []).length; 
         }
         
-        function adjustBrightness(col, amt) {
-            var usePound = false;
-            if (col[0] == "#") {
-                col = col.slice(1);
-                usePound = true;
-            }
-            var num = parseInt(col,16);
-            var r = (num >> 16) + amt;
-            if (r > 255) r = 255; else if  (r < 0) r = 0;
-            var b = ((num >> 8) & 0x00FF) + amt;
-            if (b > 255) b = 255; else if  (b < 0) b = 0;
-            var g = (num & 0x0000FF) + amt;
-            if (g > 255) g = 255; else if  (g < 0) g = 0;
-            return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16).padStart(6,'0');
-        }
-        
         function getContrastYIQ(hexcolor){
             if(!hexcolor) return 'black';
             if(hexcolor.startsWith('#')) hexcolor = hexcolor.substring(1);
@@ -383,11 +367,30 @@
             return (yiq >= 128) ? 'black' : 'white';
         }
 
+        function tintColor(hex, factor) {
+            // Factor: 0.0 (original) to 1.0 (white)
+            let c = hex.substring(1);
+            if(c.length===3) c = c.split('').map(x=>x+x).join('');
+            const rgb = parseInt(c, 16);
+            const r = (rgb >> 16) & 0xff;
+            const g = (rgb >>  8) & 0xff;
+            const b = (rgb >>  0) & 0xff;
+
+            const newR = Math.round(r + (255 - r) * factor);
+            const newG = Math.round(g + (255 - g) * factor);
+            const newB = Math.round(b + (255 - b) * factor);
+
+            return "#" + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+        }
+
         function getThemeColor(baseColor, level) {
-            const step = 30; // Brightness step
-            const maxLevel = 4;
-            const cappedLevel = Math.min(level, maxLevel);
-            return adjustBrightness(baseColor, cappedLevel * step);
+            // Level 0: 0% white (Base)
+            // Level 1: 25% white
+            // Level 2: 50% white
+            // Level 3: 75% white
+            const factors = [0, 0.25, 0.5, 0.75, 0.85];
+            const factor = factors[Math.min(level, factors.length - 1)];
+            return tintColor(baseColor, factor);
         }
 
         const App = {
@@ -631,10 +634,10 @@
                         const statusSelect = document.querySelector(`#task-table-body tr:nth-child(${index+1}) select`);
                         if(statusSelect) {
                             if (statusSelect.value !== task.status && document.activeElement !== statusSelect) statusSelect.value = task.status;
-                            const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#000000' };
-                            statusSelect.style.backgroundColor = `${sConf.color}20`;
-                            statusSelect.style.color = sConf.color;
-                            statusSelect.style.borderColor = `${sConf.color}40`;
+                            const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#e2e8f0' };
+                            const textColor = getContrastYIQ(sConf.color);
+                            statusSelect.style.backgroundColor = sConf.color;
+                            statusSelect.style.color = textColor;
                         }
                         
                         const picContainer = document.getElementById(`pic-container-${task.id}`);
@@ -701,8 +704,9 @@
                     const delBtnClass = isPhase ? `transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 text-${phaseTextColor}/70 hover:text-${phaseTextColor} hover:bg-${phaseTextColor}/20` : 'text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-slate-700';
 
                     // Get Status Style
-                    const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#000000' };
-                    const statusStyle = `background-color: ${sConf.color}20; color: ${sConf.color}; border: 1px solid ${sConf.color}40;`;
+                    const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#e2e8f0' };
+                    const sTextColor = getContrastYIQ(sConf.color);
+                    const statusStyle = `background-color: ${sConf.color}; color: ${sTextColor}; font-weight: 500;`;
 
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell border-r border-gray-100 dark:border-slate-700">
@@ -731,7 +735,7 @@
                         </td>
                         <td class="px-2 align-middle pic-cell relative border-r border-gray-100 dark:border-slate-700"></td>
                         <td class="px-2 align-middle border-r border-gray-100 dark:border-slate-700">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded cursor-pointer font-bold" style="${statusStyle}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
+                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded cursor-pointer" style="${statusStyle}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
                                 ${state.config.statusMap.map(s => `<option class="text-gray-800" value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
                         </td>
@@ -799,12 +803,11 @@
                     task.activityNo = value;
                 } else if (field === 'status') {
                    task.status = value;
-                   // Update visual style immediately
                    const sConf = state.config.statusMap.find(s => s.name === value);
                    if (sConf && element) {
-                       element.style.backgroundColor = `${sConf.color}20`;
-                       element.style.color = sConf.color;
-                       element.style.borderColor = `${sConf.color}40`;
+                       const textColor = getContrastYIQ(sConf.color);
+                       element.style.backgroundColor = sConf.color;
+                       element.style.color = textColor;
                    }
                 } else {
                     task[field] = value;
