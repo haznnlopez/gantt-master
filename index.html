@@ -37,21 +37,36 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 12px; height: 12px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        /* --- Pastel Scrollbar Fix --- */
+        .custom-scrollbar {
+            overflow: auto; /* Force scroll behavior */
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #f9a8d4 #fdf2f8; /* Firefox Pastel: Pink thumb, Light track */
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar { 
+            width: 14px; 
+            height: 14px; 
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track { 
+            background: #fff1f2; /* Rose-50 */
+            border-left: 1px solid #ffe4e6;
+        }
+        
         .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: #cbd5e1; 
-            border-radius: 6px; 
-            border: 2px solid #f1f5f9; 
+            background: #fbcfe8; /* Pink-200 */
+            border: 3px solid #fff1f2; /* Creates padding effect */
+            border-radius: 99px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+            background: #f472b6; /* Pink-400 */
+        }
 
-        .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { 
-            background: #475569; 
-            border-color: #1e293b;
-        }
+        /* Dark mode scrollbar */
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-color: #334155; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-color: #1e293b; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
         /* Hide Date Picker Icon */
@@ -131,6 +146,11 @@
         .dark .parent-row {
             background-color: #1e293b;
         }
+        
+        /* Fix for status dropdown z-index */
+        .status-dropdown-container, .pic-dropdown-container {
+            position: relative;
+        }
     </style>
 </head>
 <body class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -138,11 +158,11 @@
     <!-- Navbar -->
     <nav class="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0 transition-colors duration-200">
         <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="bg-blue-600 p-2 rounded-lg text-white shadow-blue-200 dark:shadow-none shadow-lg shrink-0">
+            <div class="bg-gradient-to-br from-pink-400 to-rose-400 p-2 rounded-lg text-white shadow-pink-200 dark:shadow-none shadow-lg shrink-0">
                 <i data-lucide="align-left" class="w-5 h-5"></i>
             </div>
             <div class="flex flex-col min-w-0 flex-1 mr-4">
-                <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 dark:hover:bg-slate-700 focus:bg-gray-50 dark:focus:bg-slate-700 rounded px-1 transition-colors w-full truncate text-slate-800 dark:text-slate-100" value="Project Timeline">
+                <input id="app-title" type="text" class="font-bold text-lg leading-tight tracking-tight outline-none bg-transparent hover:bg-gray-50 dark:hover:bg-slate-700 focus:bg-gray-50 dark:focus:bg-slate-700 rounded px-1 transition-colors w-full truncate text-slate-800 dark:text-slate-100" value="Pastel Project">
                 <div class="flex items-center gap-2 text-[10px] text-gray-400 w-full">
                     <input id="app-subtitle" type="text" class="uppercase tracking-widest font-medium outline-none bg-transparent hover:bg-gray-50 dark:hover:bg-slate-700 focus:bg-gray-50 dark:focus:bg-slate-700 rounded px-1 transition-colors w-full max-w-[250px]" value="GANTTMASTER">
                     <span class="w-px h-3 bg-gray-300 dark:bg-slate-600 shrink-0"></span>
@@ -154,9 +174,9 @@
         <div class="flex items-center gap-4 shrink-0">
             <!-- Zoom Controls -->
             <div class="hidden md:flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
-                <button onclick="app.zoomOut()" class="p-1.5 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                <button onclick="app.zoomOut()" class="p-1.5 text-gray-500 dark:text-slate-400 hover:text-pink-500 dark:hover:text-pink-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
                 <input id="zoom-input" type="text" class="bg-transparent text-xs font-bold text-gray-600 dark:text-slate-200 outline-none mx-1 w-10 text-center focus:bg-white dark:focus:bg-slate-600 rounded" value="100%">
-                <button onclick="app.zoomIn()" class="p-1.5 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                <button onclick="app.zoomIn()" class="p-1.5 text-gray-500 dark:text-slate-400 hover:text-pink-500 dark:hover:text-pink-400 hover:bg-white dark:hover:bg-slate-600 rounded transition-colors" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
             </div>
             
             <button onclick="app.toggleDarkMode()" class="p-2 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="Toggle Dark Mode">
@@ -165,7 +185,7 @@
             
             <div class="flex items-center gap-2">
                 <button onclick="app.saveChart()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"><i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:inline">Save</span></button>
-                <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share</span></button>
+                <button onclick="app.shareLink()" class="flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm font-medium shadow-md shadow-pink-200 transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> <span class="hidden sm:inline">Share</span></button>
             </div>
         </div>
     </nav>
@@ -267,7 +287,7 @@
         import { getFirestore, doc, setDoc, onSnapshot, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // =================================================================================
-        // CONFIGURATION: REPLACE THIS SECTION WITH YOUR FIREBASE KEYS FOR GITHUB HOSTING
+        // CONFIGURATION: USER PROVIDED KEYS
         // =================================================================================
         
         let firebaseConfig = {
@@ -290,7 +310,7 @@
         let appInstance, authInstance, dbInstance;
         
         try {
-            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY_HERE") {
+            if (firebaseConfig.apiKey) {
                 appInstance = initializeApp(firebaseConfig);
                 authInstance = getAuth(appInstance);
                 dbInstance = getFirestore(appInstance);
@@ -308,30 +328,33 @@
             zoom: 40,
             showLegend: false,
             activeDropdown: null,
+            activeStatusDropdown: null, // Track active status dropdown
             saveTimer: null,
             darkMode: false,
             scrollPos: { table: 0, chart: 0 },
             config: {
-                title: "Project Timeline",
+                title: "Pastel Project",
                 subtitle: "GANTTMASTER",
-                themeColor: '#3b82f6', // Default Blue Base Color
-                paneWidth: 700, // Default width
+                themeColor: '#f472b6', // Pastel Pink Base
+                paneWidth: 700,
+                // Pastel PIC Colors
                 picMap: [
-                    { id: '1', abbr: 'TL', name: 'Team Lead', color: '#3b82f6' },
-                    { id: '2', abbr: 'DEV', name: 'Developer', color: '#8b5cf6' },
-                    { id: '3', abbr: 'DES', name: 'Designer', color: '#ec4899' },
-                    { id: '4', abbr: 'QA', name: 'QA Engineer', color: '#f97316' },
+                    { id: '1', abbr: 'TL', name: 'Team Lead', color: '#fca5a5' }, // Pastel Red
+                    { id: '2', abbr: 'DEV', name: 'Developer', color: '#86efac' }, // Pastel Green
+                    { id: '3', abbr: 'DES', name: 'Designer', color: '#f9a8d4' }, // Pastel Pink
+                    { id: '4', abbr: 'QA', name: 'QA Engineer', color: '#fdba74' }, // Pastel Orange
                 ],
+                // Pastel Status Colors
                 statusMap: [
-                    { id: '1', name: 'Completed', color: '#22c55e' },
-                    { id: '2', name: 'In Progress', color: '#eab308' },
-                    { id: '3', name: 'Pending', color: '#94a3b8' },
-                    { id: '4', name: 'Delayed', color: '#ef4444' },
+                    { id: '1', name: 'Completed', color: '#86efac' }, // Pastel Green
+                    { id: '2', name: 'In Progress', color: '#fde047' }, // Pastel Yellow
+                    { id: '3', name: 'Pending', color: '#cbd5e1' }, // Grey
+                    { id: '4', name: 'Delayed', color: '#fca5a5' }, // Pastel Red
                 ]
             },
             tasks: [
-                { id: '1', activityNo: '1.0', description: 'Project Phase', startDate: new Date().toISOString().split('T')[0], duration: 10, pics: ['TL'], status: 'In Progress' },
-                { id: '2', activityNo: '1.1', description: 'Major Activity', startDate: new Date().toISOString().split('T')[0], duration: 5, pics: ['DEV'], status: 'Completed' },
+                { id: '1', activityNo: '1.0', description: 'Design Phase', startDate: new Date().toISOString().split('T')[0], duration: 10, pics: ['TL'], status: 'In Progress' },
+                { id: '2', activityNo: '1.1', description: 'Wireframing', startDate: new Date().toISOString().split('T')[0], duration: 5, pics: ['DES'], status: 'Completed' },
             ]
         };
 
@@ -368,7 +391,6 @@
         }
 
         function tintColor(hex, factor) {
-            // Factor: 0.0 (original) to 1.0 (white)
             let c = hex.substring(1);
             if(c.length===3) c = c.split('').map(x=>x+x).join('');
             const rgb = parseInt(c, 16);
@@ -384,10 +406,6 @@
         }
 
         function getThemeColor(baseColor, level) {
-            // Level 0: 0% white (Base)
-            // Level 1: 25% white
-            // Level 2: 50% white
-            // Level 3: 75% white
             const factors = [0, 0.25, 0.5, 0.75, 0.85];
             const factor = factors[Math.min(level, factors.length - 1)];
             return tintColor(baseColor, factor);
@@ -465,16 +483,19 @@
                 zoomInp.onblur = App.handleZoomSubmit;
                 zoomInp.onkeydown = (e) => { if(e.key === 'Enter') App.handleZoomSubmit(); };
 
+                // Dropdown Close Logic
                 document.addEventListener('click', (e) => {
+                    // PIC Dropdown
                     const dropdown = document.getElementById('active-dropdown');
                     if (dropdown && !dropdown.contains(e.target) && !e.target.closest('.pic-dropdown-container')) {
                         dropdown.remove();
                         state.activeDropdown = null;
                     }
-                    const drawer = document.getElementById('drawer-container');
-                    const tabBtn = document.querySelector('button[onclick="app.toggleLegend()"]');
-                    if (state.showLegend && !drawer.contains(e.target) && !tabBtn.contains(e.target)) {
-                         // Optional: Close drawer logic here if desired
+                    // Status Dropdown
+                    const statusDropdown = document.getElementById('active-status-dropdown');
+                    if (statusDropdown && !statusDropdown.contains(e.target) && !e.target.closest('.status-dropdown-container')) {
+                        statusDropdown.remove();
+                        state.activeStatusDropdown = null;
                     }
                 });
             },
@@ -507,7 +528,7 @@
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             if(data.config) state.config = { ...state.config, ...data.config };
-                            if(!state.config.themeColor) state.config.themeColor = '#3b82f6';
+                            if(!state.config.themeColor) state.config.themeColor = '#f472b6';
                             if(data.tasks) state.tasks = data.tasks.map(t => ({...t, pics: Array.isArray(t.pics) ? t.pics : []}));
                             if (state.config.paneWidth) {
                                 document.getElementById('table-pane').style.width = `${state.config.paneWidth}px`;
@@ -570,14 +591,11 @@
                             if(isPhase) {
                                 tr.style.backgroundColor = state.config.themeColor;
                                 tr.style.color = phaseTextColor; 
-                                tr.style.borderTop = "1px solid #cbd5e1";
+                                tr.style.borderTop = "1px solid #fff";
                                 const inputs = tr.querySelectorAll('input, textarea, select');
                                 inputs.forEach(inp => {
                                     inp.style.color = phaseTextColor;
                                     inp.style.fontWeight = 'bold';
-                                    if(inp.tagName === 'SELECT') {
-                                        inp.style.borderColor = (phaseTextColor === 'white') ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
-                                    }
                                 });
                             } else if (isMajor) {
                                 tr.style.backgroundColor = '';
@@ -631,19 +649,18 @@
 
                         setVal(`dur-${task.id}`, task.duration);
                         
-                        const statusSelect = document.querySelector(`#task-table-body tr:nth-child(${index+1}) select`);
-                        if(statusSelect) {
-                            if (statusSelect.value !== task.status && document.activeElement !== statusSelect) statusSelect.value = task.status;
-                            const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#e2e8f0' };
-                            const textColor = getContrastYIQ(sConf.color);
-                            statusSelect.style.backgroundColor = sConf.color;
-                            statusSelect.style.color = textColor;
-                        }
-                        
+                        // Update PIC
                         const picContainer = document.getElementById(`pic-container-${task.id}`);
                         if(picContainer && state.activeDropdown !== task.id) {
                             const trigger = picContainer.querySelector('.flex');
                             App.updatePicDisplay(trigger, task, isPhase);
+                        }
+
+                        // Update Status
+                        const statusContainer = document.getElementById(`status-container-${task.id}`);
+                        if(statusContainer && state.activeStatusDropdown !== task.id) {
+                            const trigger = statusContainer.querySelector('.flex');
+                            App.updateStatusDisplay(trigger, task, isPhase);
                         }
                     });
                 }
@@ -678,7 +695,7 @@
                     let textClass = "text-gray-500 dark:text-slate-400"; 
                     
                     if (isPhase) {
-                        rowStyle = `background-color: ${state.config.themeColor}; color: ${phaseTextColor}; border-top: 1px solid #cbd5e1;`;
+                        rowStyle = `background-color: ${state.config.themeColor}; color: ${phaseTextColor}; border-top: 1px solid #fff;`;
                         textClass = `${phaseTextColor === 'white' ? 'text-white' : 'text-black'} font-bold`;
                     } else if (isMajor) {
                         rowClass += " bg-gray-50 dark:bg-slate-800";
@@ -697,16 +714,11 @@
                     
                     const isLast = index === state.tasks.length - 1;
                     const hoverBtn = isLast ? '' : `
-                        <button onclick="app.insertTask(${index})" class="hover-add-trigger absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 text-blue-500 dark:text-blue-400 rounded-full w-5 h-5 flex items-center justify-center shadow-sm z-20 hover:bg-blue-50 dark:hover:bg-slate-600 hover:scale-110 cursor-pointer" title="Add activity below">
+                        <button onclick="app.insertTask(${index})" class="hover-add-trigger absolute bottom-[-10px] left-1/2 transform -translate-x-1/2 bg-white dark:bg-slate-700 border border-pink-200 dark:border-slate-600 text-pink-500 dark:text-pink-400 rounded-full w-5 h-5 flex items-center justify-center shadow-sm z-20 hover:bg-pink-50 dark:hover:bg-slate-600 hover:scale-110 cursor-pointer" title="Add activity below">
                             <i data-lucide="plus" class="w-3 h-3"></i>
                         </button>`;
                     
                     const delBtnClass = isPhase ? `transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 text-${phaseTextColor}/70 hover:text-${phaseTextColor} hover:bg-${phaseTextColor}/20` : 'text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-slate-700';
-
-                    // Get Status Style
-                    const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#e2e8f0' };
-                    const sTextColor = getContrastYIQ(sConf.color);
-                    const statusStyle = `background-color: ${sConf.color}; color: ${sTextColor}; font-weight: 500;`;
 
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell border-r border-gray-100 dark:border-slate-700">
@@ -734,17 +746,18 @@
                             <input id="dur-${task.id}" type="number" min="1" class="${inputClass}" value="${task.duration}" oninput="app.handleInput('${task.id}', 'duration', this.value, this)">
                         </td>
                         <td class="px-2 align-middle pic-cell relative border-r border-gray-100 dark:border-slate-700"></td>
-                        <td class="px-2 align-middle border-r border-gray-100 dark:border-slate-700">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded cursor-pointer" style="${statusStyle}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
-                                ${state.config.statusMap.map(s => `<option class="text-gray-800" value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
-                             </select>
-                        </td>
+                        <td class="px-2 align-middle status-cell relative border-r border-gray-100 dark:border-slate-700"></td>
                         <td class="px-2 align-middle text-center">
                              <button onclick="app.removeTask('${task.id}')" class="${delBtnClass}" title="Delete Activity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     `;
+                    
                     const picCell = tr.querySelector('.pic-cell');
                     picCell.appendChild(App.renderPicTrigger(task, isPhase));
+
+                    const statusCell = tr.querySelector('.status-cell');
+                    statusCell.appendChild(App.renderStatusTrigger(task, isPhase));
+
                     tbody.appendChild(tr);
                     
                     setTimeout(() => {
@@ -758,7 +771,7 @@
                 
                 const addRow = document.createElement('tr');
                 addRow.className = "row-height";
-                addRow.innerHTML = `<td colspan="8" class="px-2 py-2 align-middle"><button onclick="app.addTask()" class="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-slate-700 px-3 py-2 rounded-lg w-full transition-colors border border-dashed border-blue-200 dark:border-slate-600"><i data-lucide="plus" class="w-4 h-4"></i> Add Activity</button></td>`;
+                addRow.innerHTML = `<td colspan="8" class="px-2 py-2 align-middle"><button onclick="app.addTask()" class="flex items-center gap-2 text-pink-500 dark:text-pink-400 text-sm font-medium hover:bg-pink-50 dark:hover:bg-slate-700 px-3 py-2 rounded-lg w-full transition-colors border border-dashed border-pink-200 dark:border-slate-600"><i data-lucide="plus" class="w-4 h-4"></i> Add Activity</button></td>`;
                 tbody.appendChild(addRow);
 
                 lucide.createIcons();
@@ -801,14 +814,6 @@
                     if(durInput) durInput.value = newDur;
                 } else if (field === 'activityNo') {
                     task.activityNo = value;
-                } else if (field === 'status') {
-                   task.status = value;
-                   const sConf = state.config.statusMap.find(s => s.name === value);
-                   if (sConf && element) {
-                       const textColor = getContrastYIQ(sConf.color);
-                       element.style.backgroundColor = sConf.color;
-                       element.style.color = textColor;
-                   }
                 } else {
                     task[field] = value;
                 }
@@ -849,6 +854,8 @@
                 App.autoSave();
             },
 
+            // --- PIC LOGIC ---
+
             renderPicTrigger: (task, isPhase) => {
                 const div = document.createElement('div');
                 div.className = "pic-dropdown-container w-full h-full flex items-center";
@@ -871,16 +878,16 @@
                     task.pics.forEach(abbr => {
                         if (abbr === 'ALL') {
                             const tag = document.createElement('span');
-                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm border bg-slate-200 border-slate-300 text-black dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200";
+                            tag.className = "text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border bg-slate-200 border-slate-300 text-black dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200";
                             tag.innerText = 'ALL';
                             el.appendChild(tag);
                         } else {
                             const conf = state.config.picMap.find(p => p.abbr === abbr) || { color: '#000' };
                             const tag = document.createElement('span');
-                            tag.className = "text-[10px] font-bold px-1 rounded shadow-sm border";
-                            tag.style.color = conf.color;
-                            tag.style.backgroundColor = isPhase ? 'rgba(255,255,255,0.9)' : `${conf.color}20`; 
-                            tag.style.borderColor = isPhase ? 'transparent' : `${conf.color}40`;
+                            tag.className = "text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border";
+                            tag.style.color = getContrastYIQ(conf.color);
+                            tag.style.backgroundColor = conf.color; 
+                            tag.style.borderColor = 'transparent';
                             tag.innerText = abbr;
                             el.appendChild(tag);
                         }
@@ -893,6 +900,7 @@
                 
                 const existing = document.getElementById('active-dropdown');
                 if(existing) existing.remove();
+                if (document.getElementById('active-status-dropdown')) document.getElementById('active-status-dropdown').remove();
 
                 if (state.activeDropdown === taskId) {
                     state.activeDropdown = null;
@@ -909,7 +917,7 @@
 
                 const menu = document.createElement('div');
                 menu.id = 'active-dropdown'; 
-                menu.className = "fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-xl rounded-lg p-2 z-[9999] w-48 font-inter";
+                menu.className = "fixed bg-white dark:bg-slate-800 border border-pink-100 dark:border-slate-700 shadow-xl rounded-lg p-2 z-[9999] w-48 font-inter";
                 
                 const dropdownHeight = 200; 
                 const spaceBelow = window.innerHeight - rect.bottom;
@@ -925,11 +933,11 @@
                 
                 menu.onclick = (ev) => ev.stopPropagation();
                 
-                menu.innerHTML = `<div class="text-[10px] text-gray-400 dark:text-slate-500 font-bold mb-2 uppercase tracking-wider px-2">Assign People</div>`;
+                menu.innerHTML = `<div class="text-[10px] text-pink-400 dark:text-pink-300 font-bold mb-2 uppercase tracking-wider px-2">Assign People</div>`;
                 
                 const createOption = (abbr, name, color, isSelected) => {
                     const item = document.createElement('div');
-                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-blue-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
+                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-pink-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
                     item.onclick = () => {
                         if (task.pics.includes(abbr)) {
                             task.pics = task.pics.filter(x => x !== abbr);
@@ -948,7 +956,7 @@
                     };
                     
                     item.innerHTML = `
-                        <div class="check-box w-4 h-4 border rounded-sm flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-slate-600'}">
+                        <div class="check-box w-4 h-4 border rounded-full flex items-center justify-center ${isSelected ? 'bg-pink-400 border-pink-400' : 'border-gray-300 dark:border-slate-600'}">
                             ${isSelected ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}
                         </div>
                         <div class="flex-1 flex items-center gap-2">
@@ -964,6 +972,105 @@
                 state.config.picMap.forEach(p => {
                     const isSelected = task.pics.includes(p.abbr);
                     menu.appendChild(createOption(p.abbr, p.name, p.color, isSelected));
+                });
+
+                document.body.appendChild(menu);
+                lucide.createIcons();
+            },
+
+            // --- STATUS LOGIC (New) ---
+
+            renderStatusTrigger: (task, isPhase) => {
+                const div = document.createElement('div');
+                div.className = "status-dropdown-container w-full h-full flex items-center";
+                div.id = `status-container-${task.id}`;
+                
+                const trigger = document.createElement('div');
+                trigger.className = "flex flex-wrap gap-1 cursor-pointer min-h-[24px] items-center w-full";
+                trigger.onclick = (e) => App.openStatusDropdown(e, task.id);
+                
+                App.updateStatusDisplay(trigger, task, isPhase);
+                div.appendChild(trigger);
+                return div;
+            },
+
+            updateStatusDisplay: (el, task, isPhase) => {
+                el.innerHTML = '';
+                const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#e2e8f0' };
+                const textColor = getContrastYIQ(sConf.color);
+
+                const tag = document.createElement('span');
+                tag.className = "text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm border w-full text-center truncate";
+                tag.style.backgroundColor = sConf.color;
+                tag.style.color = textColor;
+                tag.style.borderColor = 'transparent';
+                tag.innerText = task.status || 'Pending';
+                el.appendChild(tag);
+            },
+
+            openStatusDropdown: (e, taskId) => {
+                e.stopPropagation();
+                
+                // Close others
+                const existing = document.getElementById('active-status-dropdown');
+                if(existing) existing.remove();
+                if (document.getElementById('active-dropdown')) document.getElementById('active-dropdown').remove();
+
+                if (state.activeStatusDropdown === taskId) {
+                    state.activeStatusDropdown = null;
+                    return;
+                }
+
+                const task = state.tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                state.activeStatusDropdown = taskId;
+                
+                const container = document.getElementById(`status-container-${taskId}`);
+                const rect = container.getBoundingClientRect();
+
+                const menu = document.createElement('div');
+                menu.id = 'active-status-dropdown'; 
+                menu.className = "fixed bg-white dark:bg-slate-800 border border-pink-100 dark:border-slate-700 shadow-xl rounded-lg p-2 z-[9999] w-48 font-inter";
+                
+                const dropdownHeight = 200; 
+                const spaceBelow = window.innerHeight - rect.bottom;
+                
+                if (spaceBelow < dropdownHeight) {
+                     menu.style.left = `${rect.left}px`;
+                     menu.style.bottom = `${window.innerHeight - rect.top + 5}px`; 
+                     menu.style.top = 'auto';
+                } else {
+                     menu.style.left = `${rect.left}px`;
+                     menu.style.top = `${rect.bottom + 5}px`;
+                }
+                
+                menu.onclick = (ev) => ev.stopPropagation();
+                
+                menu.innerHTML = `<div class="text-[10px] text-pink-400 dark:text-pink-300 font-bold mb-2 uppercase tracking-wider px-2">Set Status</div>`;
+                
+                state.config.statusMap.forEach(s => {
+                    const isSelected = task.status === s.name;
+                    const item = document.createElement('div');
+                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'bg-pink-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
+                    item.onclick = () => {
+                        task.status = s.name;
+                        const trigger = container.querySelector('.flex');
+                        App.updateStatusDisplay(trigger, task, !task.activityNo.includes('.'));
+                        
+                        menu.remove();
+                        state.activeStatusDropdown = null;
+                        
+                        App.renderChart();
+                        App.autoSave();
+                    };
+                    
+                    item.innerHTML = `
+                        <div class="w-3 h-3 rounded-full" style="background: ${s.color}"></div>
+                        <span class="font-medium text-slate-700 dark:text-slate-200">${s.name}</span>
+                        ${isSelected ? '<i data-lucide="check" class="w-3 h-3 text-pink-500 ml-auto"></i>' : ''}
+                    `;
+                    menu.appendChild(item);
                 });
 
                 document.body.appendChild(menu);
@@ -1065,7 +1172,7 @@
                         const isCompleted = task.status === 'Completed';
 
                         const bar = document.createElement('div');
-                        bar.className = `absolute h-6 rounded-sm text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 hover:shadow-md ${isCompleted ? 'shadow-sm' : ''}`;
+                        bar.className = `absolute h-6 rounded-full text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 hover:shadow-md ${isCompleted ? 'shadow-sm' : ''}`;
                         bar.style.left = `${startOffset * state.zoom}px`;
                         bar.style.width = `${task.duration * state.zoom}px`;
                         bar.style.backgroundColor = isCompleted ? barColor : `${barColor}15`;
@@ -1105,27 +1212,37 @@
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Theme Base Color</label>
                         <div class="flex items-center gap-3">
-                            <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" oninput="app.updateConfig('themeColor', null, null, this.value)">
-                            <span class="text-xs text-gray-500 dark:text-slate-400">Generates activity gradients</span>
+                            <input type="color" class="w-10 h-10 rounded-lg border-none cursor-pointer shadow-sm" value="${state.config.themeColor}" oninput="app.updateConfig('themeColor', null, null, this.value)">
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Main theme</span>
                         </div>
                     </div>
                     <h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Hierarchy Preview</h4>`;
                 const levels = ["Activity Phase", "Major Activity", "Minor Activity", "Sub-Activity"];
                 levels.forEach((name, i) => {
                     const color = getThemeColor(state.config.themeColor, i);
-                    c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-sm" style="background:${color}"></div><span class="text-sm text-gray-600 dark:text-slate-300">${name}</span></div>`;
+                    c1.innerHTML += `<div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-full" style="background:${color}"></div><span class="text-sm text-gray-600 dark:text-slate-300">${name}</span></div>`;
                 });
                 c.appendChild(c1);
                 
+                // Status Config
                 const c2 = document.createElement('div');
-                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Status Styles</h4>
-                    <div class="space-y-2 text-xs text-gray-500 dark:text-gray-400">
-                        Colors are handled by theme now.
-                    </div>`;
+                const addStatusBtn = `<button onclick="app.addConfigItem('status')" class="text-pink-500 dark:text-pink-400 text-xs font-bold hover:underline ml-2">+ Add</button>`;
+                c2.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Status Colors ${addStatusBtn}</h4><div class="space-y-2"></div>`;
+                const statusContainer = c2.querySelector('div');
+                state.config.statusMap.forEach((s, i) => {
+                    statusContainer.innerHTML += `
+                         <div class="flex items-center gap-2">
+                             <input type="color" class="w-4 h-4 rounded border-none cursor-pointer p-0" value="${s.color}" oninput="app.updateConfig('statusMap', ${i}, 'color', this.value)">
+                             <input class="flex-1 bg-transparent border-b border-transparent focus:border-gray-300 text-sm" value="${s.name}" oninput="app.updateConfig('statusMap', ${i}, 'name', this.value)">
+                             <button onclick="app.removeConfigItem('status', ${i})" class="text-gray-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                        </div>
+                    `;
+                });
                 c.appendChild(c2);
 
+                // PIC Config
                 const c3 = document.createElement('div');
-                const addPicBtn = `<button onclick="app.addConfigItem('pic')" class="text-blue-600 dark:text-blue-400 text-xs font-bold hover:underline ml-2">+ Add</button>`;
+                const addPicBtn = `<button onclick="app.addConfigItem('pic')" class="text-pink-500 dark:text-pink-400 text-xs font-bold hover:underline ml-2">+ Add</button>`;
                 c3.innerHTML = `<h4 class="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3">Team (PIC) ${addPicBtn}</h4><div class="space-y-2"></div>`;
                 const picContainer = c3.querySelector('div');
                 state.config.picMap.forEach((p, i) => {
@@ -1226,7 +1343,7 @@
             autoSave: () => {
                 clearTimeout(state.saveTimer);
                 document.getElementById('save-status').innerText = 'Saving...';
-                document.getElementById('save-status').className = "text-[10px] text-blue-500 font-bold transition-colors whitespace-nowrap";
+                document.getElementById('save-status').className = "text-[10px] text-pink-500 font-bold transition-colors whitespace-nowrap";
                 state.saveTimer = setTimeout(() => {
                     App.saveChart(true);
                 }, 800); 
@@ -1234,7 +1351,7 @@
 
             saveChart: async (silent = false) => {
                 if(!dbInstance) {
-                    if(!silent) alert("Config Missing!\n\nYou have not set your Firebase keys in the code.\nPlease edit index.html lines ~340 and replace placeholders.");
+                    if(!silent) alert("Config Missing!\n\nPlease check console.");
                     document.getElementById('save-status').innerText = "Config Missing";
                     document.getElementById('save-status').className = "text-[10px] text-red-500 font-bold";
                     return;
@@ -1306,9 +1423,6 @@
                 App.renderConfigPanel(); // Ensure panel is fresh
                 lucide.createIcons();
             },
-            toggleSettings: () => {
-                // Deprecated (Removed button), kept for logic if needed
-            },
             
             addConfigItem: (type) => {
                 if(type === 'pic') state.config.picMap.push({ abbr: 'NEW', name: 'New Member', color: '#000000' });
@@ -1328,7 +1442,6 @@
                 }
             },
 
-            // --- Updated Config Updater ---
             updateConfig: (path, index, field, value) => {
                 if (path === 'title') {
                     state.config.title = value;
@@ -1345,7 +1458,7 @@
                     if (path === 'themeColor') state.config.themeColor = value;
                     App.renderChart();
                     App.renderTable();
-                    App.renderConfigPanel(); // Visual feedback in panel
+                    App.renderConfigPanel(); 
                 }
                 
                 App.autoSave();
