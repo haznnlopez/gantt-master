@@ -352,7 +352,6 @@
         }
         function getDaysDiff(start, end) { return Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); }
         
-        // --- Color Logic ---
         function getTaskLevel(activityNo) {
             if(!activityNo) return 0;
             return (activityNo.match(/\./g) || []).length; 
@@ -374,7 +373,6 @@
             return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16).padStart(6,'0');
         }
         
-        // Helper to check for light/dark text
         function getContrastYIQ(hexcolor){
             if(!hexcolor) return 'black';
             if(hexcolor.startsWith('#')) hexcolor = hexcolor.substring(1);
@@ -631,7 +629,13 @@
                         setVal(`dur-${task.id}`, task.duration);
                         
                         const statusSelect = document.querySelector(`#task-table-body tr:nth-child(${index+1}) select`);
-                        if(statusSelect && statusSelect.value !== task.status && document.activeElement !== statusSelect) statusSelect.value = task.status;
+                        if(statusSelect) {
+                            if (statusSelect.value !== task.status && document.activeElement !== statusSelect) statusSelect.value = task.status;
+                            const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#000000' };
+                            statusSelect.style.backgroundColor = `${sConf.color}20`;
+                            statusSelect.style.color = sConf.color;
+                            statusSelect.style.borderColor = `${sConf.color}40`;
+                        }
                         
                         const picContainer = document.getElementById(`pic-container-${task.id}`);
                         if(picContainer && state.activeDropdown !== task.id) {
@@ -696,6 +700,10 @@
                     
                     const delBtnClass = isPhase ? `transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 text-${phaseTextColor}/70 hover:text-${phaseTextColor} hover:bg-${phaseTextColor}/20` : 'text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-slate-700';
 
+                    // Get Status Style
+                    const sConf = state.config.statusMap.find(s => s.name === task.status) || { color: '#000000' };
+                    const statusStyle = `background-color: ${sConf.color}20; color: ${sConf.color}; border: 1px solid ${sConf.color}40;`;
+
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell border-r border-gray-100 dark:border-slate-700">
                             <input id="act-${task.id}" type="text" class="${inputClass}" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)" onchange="app.commitActivityNo('${task.id}', this.value)">
@@ -723,7 +731,7 @@
                         </td>
                         <td class="px-2 align-middle pic-cell relative border-r border-gray-100 dark:border-slate-700"></td>
                         <td class="px-2 align-middle border-r border-gray-100 dark:border-slate-700">
-                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded border ${isPhase ? 'border-' + phaseTextColor + '/30' : 'border-transparent dark:border-slate-600 focus:border-gray-300 dark:focus:border-slate-500'} cursor-pointer ${isPhase ? 'text-' + phaseTextColor : 'text-gray-600 dark:text-slate-400'}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
+                             <select class="bg-transparent outline-none w-full text-xs px-1 py-1 rounded cursor-pointer font-bold" style="${statusStyle}" onchange="app.handleInput('${task.id}', 'status', this.value, this)">
                                 ${state.config.statusMap.map(s => `<option class="text-gray-800" value="${s.name}" ${task.status === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                              </select>
                         </td>
@@ -789,11 +797,52 @@
                     if(durInput) durInput.value = newDur;
                 } else if (field === 'activityNo') {
                     task.activityNo = value;
+                } else if (field === 'status') {
+                   task.status = value;
+                   // Update visual style immediately
+                   const sConf = state.config.statusMap.find(s => s.name === value);
+                   if (sConf && element) {
+                       element.style.backgroundColor = `${sConf.color}20`;
+                       element.style.color = sConf.color;
+                       element.style.borderColor = `${sConf.color}40`;
+                   }
                 } else {
                     task[field] = value;
                 }
 
                 App.renderChart();
+                App.autoSave();
+            },
+
+            addTask: () => {
+                const last = state.tasks[state.tasks.length-1];
+                const startDate = last ? last.startDate : '';
+                const newTask = {
+                    id: generateId(),
+                    activityNo: ((parseFloat(last?.activityNo) || 0) + 1).toFixed(1),
+                    description: 'New Activity',
+                    startDate: startDate,
+                    duration: 1,
+                    pics: [],
+                    status: 'Pending'
+                };
+                
+                // Capture scroll before render
+                const scrollT = document.getElementById('table-pane').scrollTop;
+                
+                state.tasks.push(newTask);
+                App.renderTable();
+                App.renderChart();
+                
+                // Scroll to bottom
+                const tp = document.getElementById('table-pane');
+                tp.scrollTop = tp.scrollHeight;
+                
+                setTimeout(() => {
+                    const descInput = document.getElementById(`desc-${newTask.id}`);
+                    if(descInput) descInput.focus();
+                }, 0);
+
                 App.autoSave();
             },
 
@@ -922,6 +971,7 @@
                 const header = document.getElementById('chart-header');
                 const bars = document.getElementById('chart-bars');
                 const todayLine = document.getElementById('today-line');
+                
                 const scrollT = document.getElementById('chart-pane').scrollTop;
 
                 header.innerHTML = '';
@@ -951,7 +1001,6 @@
 
                 // Render Header (Months and Days)
                 let currentMonth = -1;
-                let monthWidth = 0;
                 let monthLabel = "";
                 
                 header.className = "flex flex-col border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 sticky top-0 z-10 header-height shadow-sm";
@@ -965,14 +1014,12 @@
                 let monthBuffer = [];
                 
                 timelineDays.forEach((date, i) => {
-                    // Day Cell
                     const dayDiv = document.createElement('div');
                     dayDiv.className = "flex-shrink-0 border-r border-gray-200 dark:border-slate-700 flex flex-col items-center justify-center text-[10px] text-gray-500 dark:text-slate-400 select-none";
                     dayDiv.style.width = `${state.zoom}px`;
                     dayDiv.innerHTML = `<span class="font-bold">${date.getDate()}</span><span class="text-[8px]">${date.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>`;
                     dayRow.appendChild(dayDiv);
 
-                    // Month Logic
                     if (currentMonth !== date.getMonth()) {
                          if (monthBuffer.length > 0) {
                              const mDiv = document.createElement('div');
@@ -1055,7 +1102,7 @@
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Theme Base Color</label>
                         <div class="flex items-center gap-3">
-                            <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" oninput="state.config.themeColor=this.value; app.renderChart(); app.renderConfigPanel(); app.autoSave();">
+                            <input type="color" class="w-10 h-10 rounded border-none cursor-pointer" value="${state.config.themeColor}" oninput="app.updateConfig('themeColor', null, null, this.value)">
                             <span class="text-xs text-gray-500 dark:text-slate-400">Generates activity gradients</span>
                         </div>
                     </div>
@@ -1294,6 +1341,7 @@
                 if (field === 'color' || path === 'themeColor') {
                     if (path === 'themeColor') state.config.themeColor = value;
                     App.renderChart();
+                    App.renderTable();
                     App.renderConfigPanel(); // Visual feedback in panel
                 }
                 
