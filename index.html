@@ -322,13 +322,13 @@
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
                 <thead class="text-xs text-gray-700 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-20 header-height shadow-sm">
                     <tr>
-                        <th class="px-2 align-middle w-14 text-center border-r border-dashed border-gray-200 dark:border-slate-700">#</th>
-                        <th class="px-2 align-middle w-40 border-r border-dashed border-gray-200 dark:border-slate-700">Activity</th>
-                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">Start</th>
-                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">End</th>
-                        <th class="px-2 align-middle w-12 text-center border-r border-dashed border-gray-200 dark:border-slate-700">Days</th>
-                        <th class="px-2 align-middle w-36 border-r border-dashed border-gray-200 dark:border-slate-700">PIC</th>
-                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">Status</th>
+                        <th class="px-2 align-middle w-14 text-center border-r border-gray-200 dark:border-slate-700">#</th>
+                        <th class="px-2 align-middle w-40 border-r border-gray-200 dark:border-slate-700">Activity</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-200 dark:border-slate-700">Start</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-200 dark:border-slate-700">End</th>
+                        <th class="px-2 align-middle w-12 text-center border-r border-gray-200 dark:border-slate-700">Days</th>
+                        <th class="px-2 align-middle w-36 border-r border-gray-200 dark:border-slate-700">PIC</th>
+                        <th class="px-2 align-middle w-28 border-r border-gray-200 dark:border-slate-700">Status</th>
                         <th class="px-2 align-middle w-10"></th>
                     </tr>
                 </thead>
@@ -596,13 +596,13 @@
 
                 const tp = document.getElementById('table-pane'), cp = document.getElementById('chart-pane');
                 
-                // --- Chart Drag Scroll ---
+                // --- Chart Drag Scroll (Unrestricted) ---
                 let isDown = false;
                 let startX, startY, scrollLeft, scrollTop;
 
                 cp.addEventListener('mousedown', (e) => {
-                    // Prevent drag on scrollbars/interactive
-                    if (e.offsetX > cp.clientWidth || e.offsetY > cp.clientHeight || e.target.closest('.bar-element')) return;
+                    // Prevent drag on interactive bar elements
+                    if (e.target.closest('.bar-element') || e.offsetX > cp.clientWidth || e.offsetY > cp.clientHeight) return;
                     isDown = true;
                     cp.classList.add('cursor-grabbing');
                     cp.classList.remove('cursor-grab');
@@ -613,21 +613,32 @@
                 });
                 
                 const stopDrag = () => {
-                    isDown = false;
-                    cp.classList.remove('cursor-grabbing');
-                    cp.classList.add('cursor-grab');
+                    if (isDown) {
+                        isDown = false;
+                        cp.classList.remove('cursor-grabbing');
+                        cp.classList.add('cursor-grab');
+                    }
                 };
 
-                cp.addEventListener('mouseleave', stopDrag);
-                cp.addEventListener('mouseup', stopDrag);
-
-                cp.addEventListener('mousemove', (e) => {
+                // Move listeners to document to prevent losing drag when leaving chart area
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('mousemove', (e) => {
                     if (!isDown) return;
                     e.preventDefault();
-                    const x = e.pageX - cp.offsetLeft;
+                    // Calculate based on initial start position relative to scroll
+                    // Note: Since we are moving the document mouse, we need movement delta or recalculate based on pane offset
+                    // Simplest is tracking movement delta
+                    // Let's use the delta logic which works even if mouse leaves
+                    
+                    const x = e.pageX - cp.offsetLeft; 
                     const y = e.pageY - cp.offsetTop;
+                    
+                    // We calculate Walk based on current mouse position relative to where we started in the PANE
+                    // But if we leave pane, pageX still updates.
+                    // The standard way:
                     const walkX = (x - startX); 
                     const walkY = (y - startY);
+                    
                     cp.scrollLeft = scrollLeft - walkX;
                     cp.scrollTop = scrollTop - walkY;
                 });
@@ -831,7 +842,7 @@
                             if(isPhase) {
                                 tr.style.backgroundColor = phaseBg;
                                 tr.style.color = phaseTextColor; 
-                                tr.style.borderTop = "1px solid #fff";
+                                tr.style.borderTop = "2px solid #ccc"; // Fallback
                                 const inputs = tr.querySelectorAll('input, textarea, select');
                                 inputs.forEach(inp => {
                                     inp.style.color = phaseTextColor;
@@ -929,14 +940,15 @@
                     const isPhase = !task.activityNo.includes('.');
                     const isMajor = task.activityNo.includes('.') && task.activityNo.split('.').length === 2;
                     
-                    // Row Class - Dotted bottom border for grid effect
+                    // Row Class - Dashed for normal, Solid Top & Overlap for Phase
                     let rowClass = "border-b border-dashed border-gray-200 dark:border-slate-700 group transition-colors min-row-height";
                     let rowStyle = "";
                     let textClass = "text-gray-500 dark:text-slate-400"; 
                     
                     if (isPhase) {
-                        rowClass = "border-b border-white/20 group transition-colors min-row-height"; // Remove standard dotted border for phase, use style
-                        rowStyle = `background-color: ${phaseBg}; color: ${phaseTextColor}; border-top: 1px solid #fff;`;
+                        // Phase: Solid Top Border, No Bottom Border (handled by next row's top or own bg), Negative Margin to Overwrite Prev
+                        rowClass = "border-t-2 border-gray-300 dark:border-slate-600 group transition-colors min-row-height relative z-10 -mt-[1px]"; 
+                        rowStyle = `background-color: ${phaseBg}; color: ${phaseTextColor};`;
                         textClass = `${phaseTextColor === 'white' ? 'text-white' : 'text-black'} font-bold`;
                     } else if (isMajor) {
                         rowClass += " bg-gray-50 dark:bg-slate-800";
@@ -948,7 +960,7 @@
                     tr.className = rowClass;
                     tr.style.cssText = rowStyle;
                     
-                    // Vertical Borders - Dotted
+                    // Vertical Borders - Dashed (None for Phase)
                     const cellBorder = isPhase ? 'border-none' : 'border-r border-dashed border-gray-200 dark:border-slate-700';
 
                     const endDateVal = (task.startDate && task.duration) ? addDays(task.startDate, task.duration - 1) : '';
@@ -1421,10 +1433,19 @@
                     
                     const row = document.createElement('div');
                     const isPhase = !task.activityNo.includes('.');
-                    const borderTop = isPhase ? `border-top: 1px solid #cbd5e1;` : '';
-                    row.className = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50";
-                    row.style.height = `${rowHeight}px`; 
-                    row.style.cssText += borderTop;
+                    
+                    // Chart Row Styles (Matching Table Pane)
+                    let rowClass = "relative w-full border-b border-dashed border-gray-100 dark:border-slate-700 flex items-center group hover:bg-white/50 dark:hover:bg-slate-800/50";
+                    let rowStyle = `height: ${rowHeight}px;`;
+                    
+                    if (isPhase) {
+                        const phaseBg = tintColor(state.config.themeColor, 0.25);
+                        rowClass = "relative w-full border-t-2 border-gray-300 dark:border-slate-600 flex items-center group transition-colors -mt-[1px] z-10";
+                        rowStyle += `background-color: ${phaseBg};`;
+                    }
+
+                    row.className = rowClass;
+                    row.style.cssText = rowStyle;
 
                     if (task.startDate && task.duration) {
                         const startOffset = getDaysDiff(timelineDays[0], task.startDate);
