@@ -322,13 +322,13 @@
             <table class="w-full text-sm text-left table-fixed min-w-[700px]">
                 <thead class="text-xs text-gray-700 dark:text-slate-400 uppercase bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-20 header-height shadow-sm">
                     <tr>
-                        <th class="px-2 align-middle w-14 text-center border-r border-gray-200 dark:border-slate-700">#</th>
-                        <th class="px-2 align-middle w-40 border-r border-gray-200 dark:border-slate-700">Activity</th>
-                        <th class="px-2 align-middle w-28 border-r border-gray-200 dark:border-slate-700">Start</th>
-                        <th class="px-2 align-middle w-28 border-r border-gray-200 dark:border-slate-700">End</th>
-                        <th class="px-2 align-middle w-12 text-center border-r border-gray-200 dark:border-slate-700">Days</th>
-                        <th class="px-2 align-middle w-36 border-r border-gray-200 dark:border-slate-700">PIC</th>
-                        <th class="px-2 align-middle w-28 border-r border-gray-200 dark:border-slate-700">Status</th>
+                        <th class="px-2 align-middle w-14 text-center border-r border-dashed border-gray-200 dark:border-slate-700">#</th>
+                        <th class="px-2 align-middle w-40 border-r border-dashed border-gray-200 dark:border-slate-700">Activity</th>
+                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">Start</th>
+                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">End</th>
+                        <th class="px-2 align-middle w-12 text-center border-r border-dashed border-gray-200 dark:border-slate-700">Days</th>
+                        <th class="px-2 align-middle w-36 border-r border-dashed border-gray-200 dark:border-slate-700">PIC</th>
+                        <th class="px-2 align-middle w-28 border-r border-dashed border-gray-200 dark:border-slate-700">Status</th>
                         <th class="px-2 align-middle w-10"></th>
                     </tr>
                 </thead>
@@ -601,8 +601,19 @@
                 let startX, startY, scrollLeft, scrollTop;
 
                 cp.addEventListener('pointerdown', (e) => {
-                    // Prevent drag on interactive bar elements or scrollbars
-                    if (e.target.closest('.bar-element') || e.offsetX > cp.clientWidth || e.offsetY > cp.clientHeight) return;
+                    // Prevent drag on interactive bar elements
+                    if (e.target.closest('.bar-element')) return;
+
+                    // Check if click is on scrollbar (right or bottom edge of container)
+                    const rect = cp.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+                    
+                    // If click is within the scrollbar area (assuming scrollbar takes up the space difference between offsetWidth and clientWidth)
+                    const isVerticalScrollbar = clickX > cp.clientWidth;
+                    const isHorizontalScrollbar = clickY > cp.clientHeight;
+
+                    if (isVerticalScrollbar || isHorizontalScrollbar) return;
                     
                     isDown = true;
                     cp.classList.add('cursor-grabbing');
