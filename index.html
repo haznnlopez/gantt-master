@@ -596,52 +596,52 @@
 
                 const tp = document.getElementById('table-pane'), cp = document.getElementById('chart-pane');
                 
-                // --- Chart Drag Scroll (Unrestricted) ---
+                // --- Chart Drag Scroll (Pointer Events) ---
                 let isDown = false;
                 let startX, startY, scrollLeft, scrollTop;
 
-                cp.addEventListener('mousedown', (e) => {
-                    // Prevent drag on interactive bar elements
+                cp.addEventListener('pointerdown', (e) => {
+                    // Prevent drag on interactive bar elements or scrollbars
                     if (e.target.closest('.bar-element') || e.offsetX > cp.clientWidth || e.offsetY > cp.clientHeight) return;
+                    
                     isDown = true;
                     cp.classList.add('cursor-grabbing');
                     cp.classList.remove('cursor-grab');
-                    startX = e.pageX - cp.offsetLeft;
-                    startY = e.pageY - cp.offsetTop;
+                    
+                    startX = e.pageX; // Absolute page coords for delta
+                    startY = e.pageY;
                     scrollLeft = cp.scrollLeft;
                     scrollTop = cp.scrollTop;
+                    
+                    // Capture pointer to track movement even outside element
+                    cp.setPointerCapture(e.pointerId); 
                 });
                 
-                const stopDrag = () => {
-                    if (isDown) {
-                        isDown = false;
-                        cp.classList.remove('cursor-grabbing');
-                        cp.classList.add('cursor-grab');
-                    }
-                };
-
-                // Move listeners to document to prevent losing drag when leaving chart area
-                document.addEventListener('mouseup', stopDrag);
-                document.addEventListener('mousemove', (e) => {
+                cp.addEventListener('pointermove', (e) => {
                     if (!isDown) return;
                     e.preventDefault();
-                    // Calculate based on initial start position relative to scroll
-                    // Note: Since we are moving the document mouse, we need movement delta or recalculate based on pane offset
-                    // Simplest is tracking movement delta
-                    // Let's use the delta logic which works even if mouse leaves
                     
-                    const x = e.pageX - cp.offsetLeft; 
-                    const y = e.pageY - cp.offsetTop;
+                    const x = e.pageX;
+                    const y = e.pageY;
                     
-                    // We calculate Walk based on current mouse position relative to where we started in the PANE
-                    // But if we leave pane, pageX still updates.
-                    // The standard way:
-                    const walkX = (x - startX); 
-                    const walkY = (y - startY);
+                    const walkX = x - startX; 
+                    const walkY = y - startY;
                     
                     cp.scrollLeft = scrollLeft - walkX;
                     cp.scrollTop = scrollTop - walkY;
                 });
+
+                const stopDrag = (e) => {
+                    if (isDown) {
+                        isDown = false;
+                        cp.classList.remove('cursor-grabbing');
+                        cp.classList.add('cursor-grab');
+                        cp.releasePointerCapture(e.pointerId);
+                    }
+                };
+
+                cp.addEventListener('pointerup', stopDrag);
+                cp.addEventListener('pointercancel', stopDrag);
                 // ---------------------------
 
                 let syncL = false, syncR = false;
@@ -1441,7 +1441,7 @@
                     if (isPhase) {
                         const phaseBg = tintColor(state.config.themeColor, 0.25);
                         rowClass = "relative w-full border-t-2 border-gray-300 dark:border-slate-600 flex items-center group transition-colors -mt-[1px] z-10";
-                        rowStyle += `background-color: ${phaseBg};`;
+                        // rowStyle += `background-color: ${phaseBg};`; // REMOVE BACKGROUND COLOR FOR CHART PANE
                     }
 
                     row.className = rowClass;
