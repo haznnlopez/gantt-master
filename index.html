@@ -149,9 +149,16 @@
             width: auto;
         }
         
-        /* Animation */
+        /* Animations */
         @keyframes fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes slide-in { from { opacity: 0; transform: translateY(-8px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 200px; } }
+        @keyframes scale-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
         .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
+        .animate-fade-out { animation: fade-out 0.2s ease-out forwards; }
+        .animate-slide-in { animation: slide-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-scale-in { animation: scale-in 0.2s ease-out forwards; }
         
         /* Tooltip */
         .tooltip-box {
@@ -286,10 +293,21 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* Task Row Transitions */
+        tr.task-row {
+            transition: all 0.3s ease;
+            opacity: 1;
+        }
+        
+        tr.task-row.collapsed {
+            display: none;
+            opacity: 0;
+        }
+
         /* Collapse Button for Parent Tasks */
         .collapse-toggle {
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -302,7 +320,7 @@
         }
 
         .task-row.collapsed {
-            display: none;
+            animation: fade-out 0.2s ease-out forwards;
         }
     </style>
 </head>
@@ -404,7 +422,7 @@
         <div id="pane-resizer" class="resizer"></div>
 
         <!-- Chart Pane -->
-        <div id="chart-pane" class="flex-1 overflow-auto bg-gray-50/50 dark:bg-slate-900 relative custom-scrollbar h-full cursor-grab">
+        <div id="chart-pane" class="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50/50 dark:bg-slate-900 relative custom-scrollbar h-full cursor-grab">
             <div id="chart-content" class="relative">
                 <!-- Header Dates - Z-Index 30 to match Table Header -->
                 <div id="chart-header" class="flex border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 sticky top-0 z-30 header-height shadow-sm">
@@ -1214,11 +1232,24 @@
                     status: 'Pending'
                 };
                 
-                const scrollT = document.getElementById('table-pane').scrollTop;
-                
                 state.tasks.push(newTask);
                 App.renderTable();
                 App.renderChart();
+                
+                // Smooth slide-in animation for new row
+                setTimeout(() => {
+                    const newRow = document.getElementById(`tr-${newTask.id}`);
+                    if (newRow) {
+                        newRow.style.opacity = '0';
+                        newRow.style.maxHeight = '0';
+                        newRow.classList.add('animate-slide-in');
+                        setTimeout(() => {
+                            newRow.style.opacity = '';
+                            newRow.style.maxHeight = '';
+                            newRow.classList.remove('animate-slide-in');
+                        }, 300);
+                    }
+                }, 50);
                 
                 const tp = document.getElementById('table-pane');
                 tp.scrollTop = tp.scrollHeight;
@@ -1232,12 +1263,58 @@
             },
 
             toggleCollapseTask: (taskId) => {
+                const isExpanding = state.collapsedTasks[taskId];
+                
                 if (state.collapsedTasks[taskId]) {
                     delete state.collapsedTasks[taskId];
                 } else {
                     state.collapsedTasks[taskId] = true;
                 }
-                App.renderTable();
+                
+                // Animate collapse toggle button
+                const toggleBtn = document.querySelector(`button[onclick="app.toggleCollapseTask('${taskId}')"]`);
+                if (toggleBtn) {
+                    toggleBtn.classList.add('animate-scale-in');
+                    setTimeout(() => toggleBtn.classList.remove('animate-scale-in'), 300);
+                }
+                
+                // Smooth fade animation for rows
+                const tbody = document.getElementById('task-table-body');
+                const rowsToAnimate = tbody.querySelectorAll('tr.task-row');
+                
+                rowsToAnimate.forEach(row => {
+                    const rowId = row.id.replace('tr-', '');
+                    const task = state.tasks.find(t => t.id === rowId);
+                    if (!task) return;
+                    
+                    const shouldHide = state.tasks.some(parent => {
+                        if (state.collapsedTasks[parent.id] && task.activityNo.startsWith(parent.activityNo + '.')) {
+                            return true;
+                        }
+                        return false;
+                    });
+                    
+                    if (shouldHide) {
+                        row.style.opacity = '0';
+                        row.style.pointerEvents = 'none';
+                        setTimeout(() => {
+                            row.classList.add('collapsed');
+                            row.style.opacity = '';
+                            row.style.pointerEvents = '';
+                        }, 200);
+                    } else if (row.classList.contains('collapsed')) {
+                        row.classList.remove('collapsed');
+                        row.style.opacity = '0';
+                        setTimeout(() => {
+                            row.style.opacity = '1';
+                            row.style.transition = 'opacity 0.3s ease';
+                        }, 50);
+                        setTimeout(() => {
+                            row.style.transition = '';
+                        }, 350);
+                    }
+                });
+                
                 App.renderChart();
             },
 
@@ -1535,7 +1612,29 @@
                         
                         task.status = s.name;
                         const trigger = container.querySelector('.flex');
-                        App.updateStatusDisplay(trigger, task, !task.activityNo.includes('.'));
+                        
+                        // Smooth scale animation on status change
+                        const statusTag = trigger.querySelector('span');
+                        if (statusTag) {
+                            statusTag.style.transform = 'scale(0.9)';
+                            statusTag.style.opacity = '0.5';
+                        }
+                        
+                        setTimeout(() => {
+                            App.updateStatusDisplay(trigger, task, !task.activityNo.includes('.'));
+                            const newTag = trigger.querySelector('span');
+                            if (newTag) {
+                                newTag.style.transform = 'scale(1.05)';
+                                newTag.style.transition = 'all 0.2s ease';
+                                setTimeout(() => {
+                                    newTag.style.transform = 'scale(1)';
+                                    newTag.style.opacity = '1';
+                                    setTimeout(() => {
+                                        newTag.style.transition = '';
+                                    }, 200);
+                                }, 0);
+                            }
+                        }, 100);
                         
                         menu.remove();
                         state.activeStatusDropdown = null;
@@ -1546,7 +1645,15 @@
                         // Re-apply delayed status logic after status change
                         App.updateTaskDelayedStatus();
                         
-                        App.renderTable();
+                        // Update status display for any parent tasks whose status changed
+                        state.tasks.forEach(t => {
+                            const parentContainer = document.getElementById(`status-container-${t.id}`);
+                            if (parentContainer && state.activeStatusDropdown !== t.id) {
+                                const parentTrigger = parentContainer.querySelector('.flex');
+                                App.updateStatusDisplay(parentTrigger, t, !t.activityNo.includes('.'));
+                            }
+                        });
+                        
                         App.renderChart();
                         App.autoSave();
                     };
