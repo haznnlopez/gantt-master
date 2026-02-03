@@ -100,8 +100,42 @@
             border-radius: 50%;
         }
 
-        /* Hide Date Picker Icon */
-        input[type="date"] { position: relative; }
+        /* Stylized Date Picker */
+        input[type="date"] { 
+            position: relative;
+            cursor: pointer;
+            background-color: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        input[type="date"]:focus {
+            outline: none;
+            border-color: var(--theme-color);
+            box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+        }
+        
+        input[type="date"]::-webkit-outer-spin-button,
+        input[type="date"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .dark input[type="date"] {
+            background-color: transparent;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+        
+        .dark input[type="date"]:focus {
+            border-color: var(--theme-color);
+            box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.25);
+        }
+        
+        /* Hide Default Date Picker Icon */
         input[type="date"]::-webkit-calendar-picker-indicator {
             background: transparent;
             bottom: 0;
@@ -246,6 +280,30 @@
         
         .cursor-grab { cursor: grab; }
         .cursor-grabbing { cursor: grabbing !important; }
+
+        /* Bar Transitions */
+        .bar-element {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Collapse Button for Parent Tasks */
+        .collapse-toggle {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+        }
+
+        .collapse-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .task-row.collapsed {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
@@ -454,15 +512,21 @@
             tasks: [
                 { id: '1', activityNo: '1.0', description: 'Design Phase', startDate: new Date().toISOString().split('T')[0], duration: 10, pics: ['TL'], status: 'In Progress' },
                 { id: '2', activityNo: '1.1', description: 'Wireframing', startDate: new Date().toISOString().split('T')[0], duration: 5, pics: ['DES'], status: 'Completed' },
-            ]
+            ],
+            collapsedTasks: {}  // Track which parent tasks are collapsed
         };
 
         function generateId() { return Math.random().toString(36).substr(2, 9); }
         function formatDateDisplay(isoStr) { 
             if(!isoStr) return ''; 
-            if(isoStr.includes('/')) return isoStr; 
+            if(isoStr.includes('/')) {
+                // If already formatted as mm/dd/yyyy, return as is
+                const parts = isoStr.split('/');
+                if(parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) return isoStr;
+                // Otherwise parse and reformat
+            }
             const [y, m, d] = isoStr.split('-');
-            return `${d}/${m}/${y.slice(2)}`;
+            return `${m.padStart(2, '0')}/${d.padStart(2, '0')}/${y}`;
         }
         function addDays(str, days) { 
             if(!str) return '';
@@ -694,11 +758,19 @@
                         statusDropdown.remove();
                         state.activeStatusDropdown = null;
                     }
-                    // Drawer Close if clicked outside
+                    // Drawer Close if clicked outside - but NOT on config control buttons
                     const wrapper = document.getElementById('drawer-wrapper');
                     const tab = document.getElementById('drawer-tab');
                     const panel = document.getElementById('drawer-panel');
-                    if (state.showLegend && !panel.contains(e.target) && !tab.contains(e.target) && !e.target.closest('.config-control')) {
+                    
+                    // Check if click is on a config control element or within drawer
+                    const isConfigControl = e.target.closest('.config-control') || 
+                                          e.target.closest('button[onclick*="addConfigItem"]') ||
+                                          e.target.closest('button[onclick*="removeConfigItem"]') ||
+                                          e.target.closest('input[type="color"]') ||
+                                          e.target.closest('[data-config-area]');
+                    
+                    if (state.showLegend && !panel.contains(e.target) && !tab.contains(e.target) && !isConfigControl) {
                         App.toggleConfig();
                     }
                 });
@@ -831,6 +903,9 @@
                 const subEl = document.getElementById('app-subtitle');
                 if(subEl && document.activeElement !== subEl) subEl.value = state.config.subtitle;
 
+                // Update delayed statuses for tasks past their end date
+                App.updateTaskDelayedStatus();
+
                 if(lastUpdated) {
                     const d = new Date(lastUpdated);
                     const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -839,7 +914,14 @@
 
                 const tbody = document.getElementById('task-table-body');
                 const existingRows = tbody.querySelectorAll('tr.group');
-                if (existingRows.length !== state.tasks.length) {
+                
+                // Check if there are any open dropdowns - if so, don't fully re-render
+                const hasOpenDropdown = state.activeDropdown !== null || state.activeStatusDropdown !== null;
+                const focusedElement = document.activeElement;
+                const hasFocusedInput = focusedElement && focusedElement.closest('tbody');
+                
+                // Only full re-render if task count changed AND no focused inputs or open dropdowns
+                if (existingRows.length !== state.tasks.length && !hasFocusedInput && !hasOpenDropdown) {
                     App.renderTable();
                 } else {
                     const phaseBg = tintColor(state.config.themeColor, 0.25);
@@ -857,8 +939,10 @@
                                 tr.style.borderTop = "2px solid #ccc"; // Fallback
                                 const inputs = tr.querySelectorAll('input, textarea, select');
                                 inputs.forEach(inp => {
-                                    inp.style.color = phaseTextColor;
-                                    inp.style.fontWeight = 'bold';
+                                    if (document.activeElement !== inp) {
+                                        inp.style.color = phaseTextColor;
+                                        inp.style.fontWeight = 'bold';
+                                    }
                                 });
                             } else if (isMajor) {
                                 tr.style.backgroundColor = '';
@@ -866,8 +950,10 @@
                                 tr.style.borderTop = '';
                                 const inputs = tr.querySelectorAll('input, textarea, select');
                                 inputs.forEach(inp => {
-                                    inp.style.color = '';
-                                    inp.style.fontWeight = 'bold';
+                                    if (document.activeElement !== inp) {
+                                        inp.style.color = '';
+                                        inp.style.fontWeight = 'bold';
+                                    }
                                 });
                             } else {
                                 tr.style.backgroundColor = '';
@@ -875,8 +961,10 @@
                                 tr.style.borderTop = '';
                                 const inputs = tr.querySelectorAll('input, textarea, select');
                                 inputs.forEach(inp => {
-                                    inp.style.color = '';
-                                    inp.style.fontWeight = 'normal';
+                                    if (document.activeElement !== inp) {
+                                        inp.style.color = '';
+                                        inp.style.fontWeight = 'normal';
+                                    }
                                 });
                             }
                             if(task.isParent && !tr.classList.contains('parent-row')) tr.classList.add('parent-row');
@@ -931,6 +1019,7 @@
 
             renderAll: () => {
                 App.identifyParents();
+                App.updateTaskDelayedStatus();
                 App.renderTable();
                 App.renderChart();
                 App.renderConfigPanel();
@@ -948,6 +1037,7 @@
                 state.tasks.forEach((task, index) => {
                     const tr = document.createElement('tr');
                     tr.id = `tr-${task.id}`; 
+                    tr.className = "task-row";
                     
                     const isPhase = !task.activityNo.includes('.');
                     const isMajor = task.activityNo.includes('.') && task.activityNo.split('.').length === 2;
@@ -970,7 +1060,22 @@
                         rowClass += " hover:bg-gray-50 dark:hover:bg-slate-800";
                     }
 
-                    tr.className = rowClass;
+                    tr.className = "task-row " + rowClass;
+                    
+                    // Check if this task should be hidden (any of its ancestors is collapsed)
+                    const shouldHide = state.tasks.some(parent => {
+                        if (state.collapsedTasks[parent.id] && task.activityNo.startsWith(parent.activityNo + '.')) {
+                            return true;
+                        }
+                        return false;
+                    });
+                    
+                    if (shouldHide) {
+                        tr.classList.add('collapsed');
+                    } else {
+                        tr.classList.remove('collapsed');
+                    }
+                    
                     tr.style.cssText = rowStyle;
                     
                     // Vertical Borders - Dashed (None for Phase)
@@ -991,7 +1096,10 @@
 
                     tr.innerHTML = `
                         <td class="px-2 align-middle text-center relative group/cell ${cellBorder}">
-                            <input id="act-${task.id}" type="text" class="${inputClass}" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)" onchange="app.commitActivityNo('${task.id}', this.value)">
+                            <div class="flex items-center justify-center gap-1">
+                                ${task.isParent ? `<button onclick="app.toggleCollapseTask('${task.id}')" class="collapse-toggle" title="Collapse/Expand"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>` : '<div class="w-5"></div>'}
+                                <input id="act-${task.id}" type="text" class="${inputClass}" value="${task.activityNo}" oninput="app.handleInput('${task.id}', 'activityNo', this.value, this)" onchange="app.commitActivityNo('${task.id}', this.value)">
+                            </div>
                             ${hoverBtn}
                         </td>
                         <td class="px-2 align-middle py-1 ${cellBorder}">
@@ -1121,6 +1229,73 @@
                 }, 0);
 
                 App.autoSave();
+            },
+
+            toggleCollapseTask: (taskId) => {
+                if (state.collapsedTasks[taskId]) {
+                    delete state.collapsedTasks[taskId];
+                } else {
+                    state.collapsedTasks[taskId] = true;
+                }
+                App.renderTable();
+                App.renderChart();
+            },
+
+            updateParentCompletion: (task) => {
+                // Find all direct children of this task
+                const directChildren = state.tasks.filter(child => 
+                    child.activityNo.startsWith(task.activityNo + '.') &&
+                    child.activityNo.split('.').length === task.activityNo.split('.').length + 1
+                );
+
+                // If this task has children, check completion status
+                if (directChildren.length > 0) {
+                    const allCompleted = directChildren.every(child => child.status === 'Completed');
+                    const anyIncomplete = directChildren.some(child => child.status !== 'Completed');
+                    
+                    // If all children are completed, mark parent as completed
+                    if (allCompleted) {
+                        task.status = 'Completed';
+                    } 
+                    // If any child is NOT completed and parent is completed, mark parent as Pending
+                    else if (anyIncomplete && task.status === 'Completed') {
+                        task.status = 'Pending';
+                    }
+                }
+
+                // Check if this task's parent should be updated
+                const taskLevel = task.activityNo.split('.').length;
+                if (taskLevel > 1) {
+                    // Find parent by removing the last number
+                    const parentActivityNo = task.activityNo.split('.').slice(0, -1).join('.');
+                    const parent = state.tasks.find(t => t.activityNo === parentActivityNo);
+                    
+                    if (parent) {
+                        // Recursively check parent completion
+                        App.updateParentCompletion(parent);
+                    }
+                }
+            },
+
+            updateTaskDelayedStatus: () => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                state.tasks.forEach(task => {
+                    // Skip if task is already completed
+                    if (task.status === 'Completed') return;
+                    
+                    // Check if task has an end date
+                    if (!task.startDate || !task.duration) return;
+                    
+                    // Calculate end date
+                    const endDate = new Date(addDays(task.startDate, task.duration - 1));
+                    
+                    // If end date is in the past, mark as delayed
+                    if (endDate < today) {
+                        task.status = 'Delayed';
+                    }
+                });
             },
 
             // --- PIC LOGIC ---
@@ -1337,9 +1512,27 @@
                 
                 state.config.statusMap.forEach(s => {
                     const isSelected = task.status === s.name;
+                    
+                    // Check if this task is a parent with incomplete children
+                    const directChildren = state.tasks.filter(child => 
+                        child.activityNo.startsWith(task.activityNo + '.') &&
+                        child.activityNo.split('.').length === task.activityNo.split('.').length + 1
+                    );
+                    const hasIncompleteChildren = directChildren.some(child => child.status !== 'Completed');
+                    const isCompletedStatus = s.name === 'Completed';
+                    const isDisabled = task.isParent && hasIncompleteChildren && isCompletedStatus;
+                    
                     const item = document.createElement('div');
-                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition-colors ${isSelected ? 'theme-hover-bg bg-gray-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
+                    const disabledClass = isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
+                    item.className = `flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${disabledClass} ${isSelected ? 'theme-hover-bg bg-gray-50 dark:bg-slate-700' : 'hover:bg-gray-50 dark:hover:bg-slate-700'}`;
+                    
+                    if (isDisabled) {
+                        item.title = 'Cannot be marked complete - accomplish sub-activities first';
+                    }
+                    
                     item.onclick = () => {
+                        if (isDisabled) return;
+                        
                         task.status = s.name;
                         const trigger = container.querySelector('.flex');
                         App.updateStatusDisplay(trigger, task, !task.activityNo.includes('.'));
@@ -1347,6 +1540,13 @@
                         menu.remove();
                         state.activeStatusDropdown = null;
                         
+                        // Check and update parent completion status
+                        App.updateParentCompletion(task);
+                        
+                        // Re-apply delayed status logic after status change
+                        App.updateTaskDelayedStatus();
+                        
+                        App.renderTable();
                         App.renderChart();
                         App.autoSave();
                     };
@@ -1469,6 +1669,7 @@
 
                         const bar = document.createElement('div');
                         bar.className = `absolute h-6 rounded-full text-xs flex items-center px-2 truncate transition-all duration-300 cursor-pointer hover:brightness-110 hover:shadow-md ${isCompleted ? 'shadow-sm' : ''} bar-element`;
+                        bar.setAttribute('data-bar-id', task.id);
                         bar.style.left = `${startOffset * state.zoom}px`;
                         bar.style.width = `${task.duration * state.zoom}px`;
                         bar.style.backgroundColor = isCompleted ? barColor : `${barColor}15`;
@@ -1501,18 +1702,32 @@
                     todayLine.style.left = `${(offset * state.zoom) + (state.zoom/2)}px`;
                     todayLine.style.top = '0px'; 
                 } else { todayLine.style.display = 'none'; }
+                
+                // Hide bars for collapsed rows
+                state.tasks.forEach((task) => {
+                    const barDiv = document.querySelector(`[data-bar-id="${task.id}"]`);
+                    if (!barDiv) return;
+                    
+                    const row = document.getElementById(`tr-${task.id}`);
+                    if (row && row.classList.contains('collapsed')) {
+                        barDiv.parentElement.style.display = 'none';
+                    } else {
+                        barDiv.parentElement.style.display = '';
+                    }
+                });
             },
 
             renderConfigPanel: () => {
                 const c = document.getElementById('legend-content');
                 c.innerHTML = '';
+                c.setAttribute('data-config-area', 'true');
                 
                 const c1 = document.createElement('div');
                 c1.innerHTML = `
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Theme Base Color</label>
                         <div class="flex items-center gap-3">
-                            <input type="color" class="w-10 h-10 rounded-full border-none cursor-pointer shadow-sm flex-shrink-0" value="${state.config.themeColor}" oninput="app.updateConfig('themeColor', null, null, this.value)">
+                            <input type="color" class="w-10 h-10 rounded-full border-none cursor-pointer shadow-sm flex-shrink-0 config-control" value="${state.config.themeColor}" onchange="app.updateConfig('themeColor', null, null, this.value)">
                             <span class="text-xs text-gray-500 dark:text-slate-400">Main theme</span>
                         </div>
                     </div>
@@ -1819,3 +2034,4 @@
     </script>
 </body>
 </html>
+
